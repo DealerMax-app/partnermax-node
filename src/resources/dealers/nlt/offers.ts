@@ -124,6 +124,14 @@ export interface OfferRetrieveResponse {
 
   title: string;
 
+  /**
+   * Standard equipment list (one entry per item). Sourced from
+   * `mnet_dettagli.equipaggiamento` split on newlines/semicolons. Currently empty on
+   * every live offer (upstream column unpopulated); will auto-fill when the data
+   * flows in.
+   */
+  accessori_di_serie?: Array<string>;
+
   accessori_inclusi?: Array<OfferRetrieveResponse.AccessoriInclusi>;
 
   addons_disponibili?: OfferRetrieveResponse.AddonsDisponibili;
@@ -143,6 +151,19 @@ export interface OfferRetrieveResponse {
   description_full?: string | null;
 
   description_short?: string | null;
+
+  /**
+   * Full Motornet technical sheet — apimax: `_get_dettagli_motornet`
+   * (`nlt_resolver.py:752`). Every non-null `mnet_dettagli` column for this
+   * `codice_motornet_uni` flattened into a plain dict (~30-40 keys typically
+   * populated out of 90 columns). Native units preserved: cilindrata (cc), kw, hp,
+   * coppia, accelerazione (s), velocita (km/h), lunghezza/larghezza/altezza/passo
+   * (cm), peso (kg), bagagliaio (L, free-text), emissioni_co2 (g/km, free-text),
+   * pneumatici_anteriori ("205/55 R17"), trazione, alimentazione, cambio, euro,
+   * autonomia_media, capacita_nominale_batteria, etc. Keys are stable across offers;
+   * values are int/float/bool/string (timestamps ISO-formatted).
+   */
+  dettagli_tecnici?: { [key: string]: unknown };
 
   /**
    * Raw Italian label from `nlt_offerte.alimentazione` (e.g. "Benzina", "Ibrida").
@@ -178,6 +199,15 @@ export interface OfferRetrieveResponse {
   quotazioni?: Array<OfferRetrieveResponse.Quotazioni>;
 
   segmento?: string | null;
+
+  /**
+   * Services normally included in the canone. apimax: `_get_services_included`
+   * (`nlt_resolver.py:719`) reads global `nlt_services` is_active table — same 8
+   * services across the network (Assicurazione RCA / Kasco / Incendio-Furto,
+   * Manutenzione, Assistenza Stradale, Bollo, Pneumatici, Veicolo in anticipo). Not
+   * per-offer.
+   */
+  servizi_inclusi?: Array<OfferRetrieveResponse.ServiziInclusi>;
 
   /**
    * Per-offer VAT scope: true → consumer-facing (B2C, VAT-inclusive). false →
@@ -304,6 +334,18 @@ export namespace OfferRetrieveResponse {
     durata_mesi: 36 | 48 | 60;
 
     km_inclusi_anno: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
+  }
+
+  export interface ServiziInclusi {
+    /**
+     * Service name (e.g. "Assicurazione RCA", "Manutenzione").
+     */
+    name: string;
+
+    /**
+     * Short human description (e.g. "Responsabilità Civile Auto").
+     */
+    description?: string | null;
   }
 
   export interface Tag {
