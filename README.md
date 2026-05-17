@@ -1,0 +1,1 @@
+# partnermax-typescript
