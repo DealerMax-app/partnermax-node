@@ -29,6 +29,7 @@ describe('resource nltSettings', () => {
         low_eur: 0,
         medium_eur: 3000,
       },
+      image_mode: 'branded',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -48,7 +49,9 @@ describe('resource nltSettings', () => {
         low_eur: 0,
         medium_eur: 3000,
       },
+      image_mode: 'branded',
       currency: 'EUR',
+      image_scenario_locked: 'mediterraneo',
       'Idempotency-Key': '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
     });
   });

@@ -169,6 +169,14 @@ export interface OfferRetrieveResponse {
   down_payment_scenarios_labels?: OfferRetrieveResponse.DownPaymentScenariosLabels | null;
 
   /**
+   * Italian FAQ for this offer — apimax `build_offer_faqs`
+   * (`seo_engine/nlt_faq_builder.py:63`), no cap. Derived from offer payload +
+   * Motornet specs (dimensioni, bagagliaio, CO2, motore, posti/porte, prestazioni,
+   * canone preset 48/15k, canone minimo, durate, IVA, anticipi).
+   */
+  faqs?: Array<OfferRetrieveResponse.Faq>;
+
+  /**
    * Raw Italian label from `nlt_offerte.alimentazione` (e.g. "Benzina", "Ibrido
    * diesel").
    */
@@ -316,6 +324,19 @@ export namespace OfferRetrieveResponse {
     standard: string;
 
     zero: string;
+  }
+
+  export interface Faq {
+    /**
+     * Italian answer (no placeholders — values from the offer payload + Motornet
+     * specs).
+     */
+    answer: string;
+
+    /**
+     * Italian question.
+     */
+    question: string;
   }
 
   export interface Gallery {
