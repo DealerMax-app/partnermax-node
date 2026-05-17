@@ -25,15 +25,18 @@ export class NltSettings extends APIResource {
 
   /**
    * Sets the dealer's agency markup percent (0–10) and three down-payment tiers (low
-   * / medium / high). Down-payment tiers MUST be in strictly ascending order.
-   * Changes propagate to the cross-network AI surfaces within five minutes.
+   * / medium / high). Each tier carries `percent_of_list (0–100)` +
+   * `fixed_eur (≥0)`; the final EUR per tier is offer-dependent
+   * (`listino_imponibile * pct + eur`). Changes propagate to the cross-network AI
+   * surfaces within five minutes.
    *
    * The displayed monthly canon for an offer is computed as:
    *
    * ```
    * listino_imponibile = prezzo_listino / 1.22
    * provvigione = listino_imponibile × (agency_markup_percent / 100)
-   * canon = base_canon + provvigione / duration_months - down_payment_eur / duration_months
+   * anticipo_tier_eur = listino_imponibile × (tier.percent_of_list / 100) + tier.fixed_eur
+   * canon = base_canon + provvigione / duration_months − anticipo_tier_eur / duration_months
    * if offer.private_only: canon *= 1.22
    * ```
    *
@@ -47,9 +50,9 @@ export class NltSettings extends APIResource {
    *   {
    *     agency_markup_percent: 3.5,
    *     down_payment_tiers: {
-   *       low_eur: 0,
-   *       medium_eur: 3000,
-   *       high_eur: 6000,
+   *       low: { percent_of_list: 0, fixed_eur: 0 },
+   *       medium: { percent_of_list: 12.5, fixed_eur: 0 },
+   *       high: { percent_of_list: 25, fixed_eur: 0 },
    *     },
    *     image_mode: 'branded',
    *   },
@@ -74,24 +77,96 @@ export class NltSettings extends APIResource {
 }
 
 /**
- * Three down-payment scenarios shown to consumers, in strictly ascending order
- * (low < medium < high).
+ * Three down-payment scenarios (basso / medio / alto). Each tier carries
+ * `{percent_of_list (0–100), fixed_eur (≥0)}`. No strict-ascending check — the
+ * final EUR per tier is offer-dependent (`listino_imponibile * pct + eur`).
  */
 export interface DownPaymentTiers {
   /**
-   * Highest down-payment scenario.
+   * One down-payment tier —
+   * `final_eur = listino_imponibile * (percent_of_list / 100) + fixed_eur`.
+   * Persisted in apimax shape `{"pct": <0..1>, "eur": <int>}` on
+   * `dealer_public.nlt_anticipi_config`.
    */
-  high_eur: number;
+  high: DownPaymentTiers.High;
 
   /**
-   * Lowest down-payment scenario, in whole EUR.
+   * One down-payment tier —
+   * `final_eur = listino_imponibile * (percent_of_list / 100) + fixed_eur`.
+   * Persisted in apimax shape `{"pct": <0..1>, "eur": <int>}` on
+   * `dealer_public.nlt_anticipi_config`.
    */
-  low_eur: number;
+  low: DownPaymentTiers.Low;
 
   /**
-   * Middle down-payment scenario.
+   * One down-payment tier —
+   * `final_eur = listino_imponibile * (percent_of_list / 100) + fixed_eur`.
+   * Persisted in apimax shape `{"pct": <0..1>, "eur": <int>}` on
+   * `dealer_public.nlt_anticipi_config`.
    */
-  medium_eur: number;
+  medium: DownPaymentTiers.Medium;
+}
+
+export namespace DownPaymentTiers {
+  /**
+   * One down-payment tier —
+   * `final_eur = listino_imponibile * (percent_of_list / 100) + fixed_eur`.
+   * Persisted in apimax shape `{"pct": <0..1>, "eur": <int>}` on
+   * `dealer_public.nlt_anticipi_config`.
+   */
+  export interface High {
+    /**
+     * Flat EUR component added on top of the percentage (e.g. promo
+     * `0% + 500€ fissi`). Whole euros only.
+     */
+    fixed_eur: number;
+
+    /**
+     * Percent of the IVA-excluded list price applied as down payment for this tier.
+     * Range 0–100. Typical defaults: 0 (low), 12.5 (medium), 25 (high).
+     */
+    percent_of_list: number;
+  }
+
+  /**
+   * One down-payment tier —
+   * `final_eur = listino_imponibile * (percent_of_list / 100) + fixed_eur`.
+   * Persisted in apimax shape `{"pct": <0..1>, "eur": <int>}` on
+   * `dealer_public.nlt_anticipi_config`.
+   */
+  export interface Low {
+    /**
+     * Flat EUR component added on top of the percentage (e.g. promo
+     * `0% + 500€ fissi`). Whole euros only.
+     */
+    fixed_eur: number;
+
+    /**
+     * Percent of the IVA-excluded list price applied as down payment for this tier.
+     * Range 0–100. Typical defaults: 0 (low), 12.5 (medium), 25 (high).
+     */
+    percent_of_list: number;
+  }
+
+  /**
+   * One down-payment tier —
+   * `final_eur = listino_imponibile * (percent_of_list / 100) + fixed_eur`.
+   * Persisted in apimax shape `{"pct": <0..1>, "eur": <int>}` on
+   * `dealer_public.nlt_anticipi_config`.
+   */
+  export interface Medium {
+    /**
+     * Flat EUR component added on top of the percentage (e.g. promo
+     * `0% + 500€ fissi`). Whole euros only.
+     */
+    fixed_eur: number;
+
+    /**
+     * Percent of the IVA-excluded list price applied as down payment for this tier.
+     * Range 0–100. Typical defaults: 0 (low), 12.5 (medium), 25 (high).
+     */
+    percent_of_list: number;
+  }
 }
 
 /**
@@ -113,8 +188,9 @@ export interface NltSettings {
   dealer_id: string;
 
   /**
-   * Three down-payment scenarios shown to consumers, in strictly ascending order
-   * (low < medium < high).
+   * Three down-payment scenarios (basso / medio / alto). Each tier carries
+   * `{percent_of_list (0–100), fixed_eur (≥0)}`. No strict-ascending check — the
+   * final EUR per tier is offer-dependent (`listino_imponibile * pct + eur`).
    */
   down_payment_tiers: DownPaymentTiers;
 
@@ -142,8 +218,9 @@ export interface NltSettingUpdateParams {
   agency_markup_percent: number;
 
   /**
-   * Body param: Three down-payment scenarios shown to consumers, in strictly
-   * ascending order (low < medium < high).
+   * Body param: Three down-payment scenarios (basso / medio / alto). Each tier
+   * carries `{percent_of_list (0–100), fixed_eur (≥0)}`. No strict-ascending check —
+   * the final EUR per tier is offer-dependent (`listino_imponibile * pct + eur`).
    */
   down_payment_tiers: DownPaymentTiers;
 
