@@ -1,6 +1,5 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-export { Auth, type AuthLoginResponse, type AuthLoginParams } from './auth';
 export {
   Dealers,
   type DealerDetail,

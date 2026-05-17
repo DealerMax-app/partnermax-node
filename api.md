@@ -1,13 +1,3 @@
-# Auth
-
-Types:
-
-- <code><a href="./src/resources/auth.ts">AuthLoginResponse</a></code>
-
-Methods:
-
-- <code title="post /v1/auth/login">client.auth.<a href="./src/resources/auth.ts">login</a>({ ...params }) -> AuthLoginResponse</code>
-
 # Keys
 
 Types:
