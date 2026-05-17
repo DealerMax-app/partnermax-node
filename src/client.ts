@@ -799,7 +799,7 @@ export class Partnermax {
   static toFile = Uploads.toFile;
 
   /**
-   * Human session login (cookie JWT) and API key lifecycle management.
+   * API key lifecycle management — issue, list, revoke. The partner authenticates every request with `X-Api-Key` (preferred) or `Authorization: Bearer <key>`; the server identifies the partner from the key and scopes all reads/writes to dealers owned by that partner.
    */
   keys: API.Keys = new API.Keys(this);
   /**

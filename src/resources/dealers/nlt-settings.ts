@@ -28,9 +28,17 @@ export class NltSettings extends APIResource {
    * / medium / high). Down-payment tiers MUST be in strictly ascending order.
    * Changes propagate to the cross-network AI surfaces within five minutes.
    *
-   * The displayed canon for an offer is computed as:
-   * `displayed_canon = base_canon × (1 + agency_markup_percent / 100) × adjustment_for_down_payment_tier × vat_multiplier`
-   * where `vat_multiplier = 1.22` if `vat_treatment = "private"`, else `1.0`.
+   * The displayed monthly canon for an offer is computed as:
+   *
+   * ```
+   * listino_imponibile = prezzo_listino / 1.22
+   * provvigione = listino_imponibile × (agency_markup_percent / 100)
+   * canon = base_canon + provvigione / durata - anticipo_eur / durata
+   * if offer.vat_treatment == "private": canon *= 1.22
+   * ```
+   *
+   * VAT treatment is a property of each offer (`NltOfferSummary.vat_treatment`), not
+   * of the dealer.
    *
    * @example
    * ```ts
@@ -43,7 +51,6 @@ export class NltSettings extends APIResource {
    *       medium_eur: 3000,
    *       high_eur: 6000,
    *     },
-   *     vat_treatment: 'private',
    *   },
    * );
    * ```
@@ -86,6 +93,10 @@ export interface DownPaymentTiers {
   medium_eur: number;
 }
 
+/**
+ * Dealer-level NLT economics. VAT treatment is NOT a dealer-level field — it is a
+ * property of the offer (see `NltOfferSummary.vat_treatment`).
+ */
 export interface NltSettings {
   /**
    * Markup applied on top of the network base canon, in percent. Hard cap at 10%.
@@ -106,11 +117,6 @@ export interface NltSettings {
   down_payment_tiers: DownPaymentTiers;
 
   effective_from: string;
-
-  /**
-   * private = display VAT-inclusive (×1.22). business = display VAT-exclusive.
-   */
-  vat_treatment: 'private' | 'business';
 }
 
 export interface NltSettingUpdateParams {
@@ -124,11 +130,6 @@ export interface NltSettingUpdateParams {
    * ascending order (low < medium < high).
    */
   down_payment_tiers: DownPaymentTiers;
-
-  /**
-   * Body param
-   */
-  vat_treatment: 'private' | 'business';
 
   /**
    * Body param
