@@ -101,78 +101,223 @@ export interface NltOfferSummary {
   trim?: string | null;
 }
 
-export interface OfferRetrieveResponse extends NltOfferSummary {
-  included_services: Array<
-    'full_insurance' | 'maintenance' | 'road_tax' | 'tires' | 'replacement_vehicle' | 'roadside_assistance'
-  >;
+/**
+ * Full offer detail. Shape mirrors apimax MCP `get_nlt_offer_details`
+ * (`apimax/app/api/mcp_server.py::_tool_get_nlt_offer_details`) bit-for-bit so
+ * partnermax SDK consumers stay aligned with the Custom GPT / MCP clients on the
+ * DealerMAX network.
+ */
+export interface OfferRetrieveResponse {
+  found: boolean;
 
   /**
-   * All 54 displayed price points (18 base quotations × 3 down-payment tiers).
+   * True when canon is VAT-inclusive (i.e. `solo_privati=true`).
    */
-  quotations: Array<OfferRetrieveResponse.Quotation>;
+  iva_inclusa: boolean;
 
-  specs: OfferRetrieveResponse.Specs;
+  network_dealer_count: number;
 
-  dealer_card?: OfferRetrieveResponse.DealerCard;
+  /**
+   * Offer slug (stable identifier shared with apimax surfaces).
+   */
+  slug: string;
 
-  image_gallery?: Array<string>;
+  title: string;
 
-  optional_accessories?: Array<OfferRetrieveResponse.OptionalAccessory>;
+  accessori_inclusi?: Array<OfferRetrieveResponse.AccessoriInclusi>;
+
+  addons_disponibili?: OfferRetrieveResponse.AddonsDisponibili;
+
+  anticipo_scenari_eur?: OfferRetrieveResponse.AnticipoScenariEur | null;
+
+  anticipo_scenari_labels?: OfferRetrieveResponse.AnticipoScenariLabels | null;
+
+  /**
+   * Lowest canon across the partner network for this offer (primary dealer's price).
+   */
+  canone_mensile_min_eur?: number | null;
+
+  /**
+   * AI-generated long-form description.
+   */
+  description_full?: string | null;
+
+  description_short?: string | null;
+
+  /**
+   * Raw Italian label from `nlt_offerte.alimentazione` (e.g. "Benzina", "Ibrida").
+   */
+  fuel_type?: string | null;
+
+  gallery?: Array<OfferRetrieveResponse.Gallery>;
+
+  image_url?: string;
+
+  last_modified?: string;
+
+  marca?: string | null;
+
+  modello?: string | null;
+
+  /**
+   * All the partner's dealers that can fulfil this offer, sorted by canon ASC.
+   */
+  network_offers?: Array<OfferRetrieveResponse.NetworkOffer>;
+
+  /**
+   * List price IVA-inclusive (vehicle + accessories + MSS).
+   */
+  prezzo_totale_eur?: number | null;
+
+  primary_dealer_city?: string | null;
+
+  primary_dealer_name?: string | null;
+
+  primary_dealer_province?: string | null;
+
+  quotazioni?: Array<OfferRetrieveResponse.Quotazioni>;
+
+  segmento?: string | null;
+
+  /**
+   * Per-offer VAT scope: true → consumer-facing (B2C, VAT-inclusive). false →
+   * business (B2B, VAT-exclusive).
+   */
+  solo_privati?: boolean | null;
+
+  tags?: Array<OfferRetrieveResponse.Tag>;
+
+  /**
+   * Raw Italian label from `nlt_offerte.cambio`.
+   */
+  transmission?: string | null;
+
+  versione?: string | null;
 }
 
 export namespace OfferRetrieveResponse {
-  export interface Quotation {
-    /**
-     * Down-payment amount in EUR for this tier (from the dealer's NLT settings).
-     */
-    down_payment_eur: number;
+  export interface AccessoriInclusi {
+    codice: string;
 
-    down_payment_tier: 'low' | 'medium' | 'high';
+    descrizione: string;
 
-    duration_months: 24 | 36 | 48;
-
-    km_per_year: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
-
-    /**
-     * Displayed monthly canon (includes dealer markup + VAT treatment).
-     */
-    monthly_canon_eur: number;
+    prezzo_extra_eur: number;
   }
 
-  export interface Specs {
-    co2_g_per_km?: number | null;
+  export interface AddonsDisponibili {
+    auto_sostitutiva?: AddonsDisponibili.AutoSostitutiva | null;
 
-    engine_displacement_cc?: number | null;
-
-    height_mm?: number | null;
-
-    length_mm?: number | null;
-
-    power_kw?: number | null;
-
-    transmission?: string | null;
-
-    trunk_litres?: number | null;
-
-    width_mm?: number | null;
+    pneumatici?: AddonsDisponibili.Pneumatici | null;
   }
 
-  export interface DealerCard {
-    business_name?: string;
+  export namespace AddonsDisponibili {
+    export interface AutoSostitutiva {
+      /**
+       * Replacement vehicle category (B fixed).
+       */
+      categoria_default: string;
 
-    city?: string;
+      categoria_descrizione: string;
+
+      costo_mensile_eur: number;
+    }
+
+    export interface Pneumatici {
+      /**
+       * Cost of one set of 4 tyres, EUR.
+       */
+      costo_treno_eur: number;
+
+      /**
+       * Tyre diameter in inches.
+       */
+      diametro_in: number;
+
+      /**
+       * Replacement rule (e.g. one set every 30 000 km, rounded up).
+       */
+      regola_cambio: string;
+    }
+  }
+
+  export interface AnticipoScenariEur {
+    /**
+     * 12.5% down-payment scenario, whole EUR.
+     */
+    anticipo_medio: number;
+
+    /**
+     * 25% down-payment scenario, whole EUR (matches vetrina canon).
+     */
+    anticipo_standard: number;
+
+    /**
+     * Zero down-payment scenario, whole EUR.
+     */
+    anticipo_zero: number;
+  }
+
+  export interface AnticipoScenariLabels {
+    anticipo_medio: string;
+
+    anticipo_standard: string;
+
+    anticipo_zero: string;
+  }
+
+  export interface Gallery {
+    is_cover: boolean;
+
+    url: string;
+  }
+
+  export interface NetworkOffer {
+    canone_mensile_min_eur: number;
+
+    dealer_id: number;
+
+    dealer_name: string;
+
+    city?: string | null;
+
+    contact_url?: string;
+
+    google_maps_url?: string;
 
     phone?: string | null;
 
-    primary_domain?: string;
+    province?: string | null;
 
-    province_code?: string;
+    rating_value?: number | null;
+
+    review_count?: number | null;
   }
 
-  export interface OptionalAccessory {
-    label: string;
+  export interface Quotazioni {
+    /**
+     * Displayed monthly canon for this (durata, km) cell. Computed by
+     * `calcola_canone_vetrina` for the primary dealer of the partner network;
+     * VAT-inclusive when `solo_privati=true`.
+     */
+    canone_mensile_eur: number;
 
-    monthly_canon_delta_eur: number;
+    durata_mesi: 36 | 48 | 60;
+
+    km_inclusi_anno: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
+  }
+
+  export interface Tag {
+    name: string;
+
+    /**
+     * Hex color for tag chip.
+     */
+    color?: string | null;
+
+    /**
+     * FontAwesome icon class.
+     */
+    icon?: string | null;
   }
 }
 
