@@ -25,9 +25,9 @@ describe('resource nltSettings', () => {
     const responsePromise = client.dealers.nltSettings.update('dealer_id', {
       agency_markup_percent: 3.5,
       down_payment_tiers: {
-        high_eur: 6000,
-        low_eur: 0,
-        medium_eur: 3000,
+        high: { fixed_eur: 0, percent_of_list: 25 },
+        low: { fixed_eur: 0, percent_of_list: 0 },
+        medium: { fixed_eur: 0, percent_of_list: 12.5 },
       },
       image_mode: 'branded',
     });
@@ -45,9 +45,9 @@ describe('resource nltSettings', () => {
     const response = await client.dealers.nltSettings.update('dealer_id', {
       agency_markup_percent: 3.5,
       down_payment_tiers: {
-        high_eur: 6000,
-        low_eur: 0,
-        medium_eur: 3000,
+        high: { fixed_eur: 0, percent_of_list: 25 },
+        low: { fixed_eur: 0, percent_of_list: 0 },
+        medium: { fixed_eur: 0, percent_of_list: 12.5 },
       },
       image_mode: 'branded',
       currency: 'EUR',
