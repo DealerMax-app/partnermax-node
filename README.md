@@ -11,11 +11,8 @@ It is generated with [Stainless](https://www.stainless.com/).
 ## Installation
 
 ```sh
-npm install git+ssh://git@github.com:DealerMax-app/partnermax-node.git
+npm install partnermax
 ```
-
-> [!NOTE]
-> Once this package is [published to npm](https://www.stainless.com/docs/guides/publish), this will become: `npm install partnermax`
 
 ## Usage
 
@@ -26,12 +23,18 @@ The full API of this library can be found in [api.md](api.md).
 import Partnermax from 'partnermax';
 
 const client = new Partnermax({
+  apiKey: process.env['PARTNERMAX_API_KEY'], // This is the default and can be omitted
   environment: 'sandbox', // defaults to 'production'
 });
 
-const response = await client.auth.login({ email: 'ops@partner-saas.com', password: 'redacted' });
-
-console.log(response.partner_id);
+const dealerDetail = await client.dealers.create({
+  business_name: 'Rossi Automobili S.R.L.',
+  contact_email: 'info@rossi-auto.it',
+  postal_code: '20121',
+  primary_domain: 'rossi-auto.it',
+  province_code: 'MI',
+  vat_number: 'IT01234567890',
+});
 ```
 
 ### Request & Response types
@@ -43,11 +46,11 @@ This library includes TypeScript definitions for all request params and response
 import Partnermax from 'partnermax';
 
 const client = new Partnermax({
+  apiKey: process.env['PARTNERMAX_API_KEY'], // This is the default and can be omitted
   environment: 'sandbox', // defaults to 'production'
 });
 
-const params: Partnermax.AuthLoginParams = { email: 'ops@partner-saas.com', password: 'redacted' };
-const response: Partnermax.AuthLoginResponse = await client.auth.login(params);
+const dealers: Partnermax.DealerListResponse = await client.dealers.list();
 ```
 
 Documentation for each method, request param, and response field are available in docstrings and will appear on hover in most modern editors.
@@ -60,17 +63,15 @@ a subclass of `APIError` will be thrown:
 
 <!-- prettier-ignore -->
 ```ts
-const response = await client.auth
-  .login({ email: 'ops@partner-saas.com', password: 'redacted' })
-  .catch(async (err) => {
-    if (err instanceof Partnermax.APIError) {
-      console.log(err.status); // 400
-      console.log(err.name); // BadRequestError
-      console.log(err.headers); // {server: 'nginx', ...}
-    } else {
-      throw err;
-    }
-  });
+const dealers = await client.dealers.list().catch(async (err) => {
+  if (err instanceof Partnermax.APIError) {
+    console.log(err.status); // 400
+    console.log(err.name); // BadRequestError
+    console.log(err.headers); // {server: 'nginx', ...}
+  } else {
+    throw err;
+  }
+});
 ```
 
 Error codes are as follows:
@@ -102,7 +103,7 @@ const client = new Partnermax({
 });
 
 // Or, configure per-request:
-await client.auth.login({ email: 'ops@partner-saas.com', password: 'redacted' }, {
+await client.dealers.list({
   maxRetries: 5,
 });
 ```
@@ -119,7 +120,7 @@ const client = new Partnermax({
 });
 
 // Override per-request:
-await client.auth.login({ email: 'ops@partner-saas.com', password: 'redacted' }, {
+await client.dealers.list({
   timeout: 5 * 1000,
 });
 ```
@@ -142,17 +143,13 @@ Unlike `.asResponse()` this method consumes the body, returning once it is parse
 ```ts
 const client = new Partnermax();
 
-const response = await client.auth
-  .login({ email: 'ops@partner-saas.com', password: 'redacted' })
-  .asResponse();
+const response = await client.dealers.list().asResponse();
 console.log(response.headers.get('X-My-Header'));
 console.log(response.statusText); // access the underlying Response object
 
-const { data: response, response: raw } = await client.auth
-  .login({ email: 'ops@partner-saas.com', password: 'redacted' })
-  .withResponse();
+const { data: dealers, response: raw } = await client.dealers.list().withResponse();
 console.log(raw.headers.get('X-My-Header'));
-console.log(response.partner_id);
+console.log(dealers.data);
 ```
 
 ### Logging
@@ -232,7 +229,7 @@ parameter. This library doesn't validate at runtime that the request matches the
 send will be sent as-is.
 
 ```ts
-client.auth.login({
+client.dealers.create({
   // ...
   // @ts-expect-error baz is not yet public
   baz: 'undocumented option',

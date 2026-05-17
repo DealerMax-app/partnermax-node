@@ -17,7 +17,6 @@ import * as Errors from './core/error';
 import * as Uploads from './core/uploads';
 import * as API from './resources/index';
 import { APIPromise } from './core/api-promise';
-import { Auth, AuthLoginParams, AuthLoginResponse } from './resources/auth';
 import { KeyIssueParams, KeyIssueResponse, KeyListResponse, Keys } from './resources/keys';
 import {
   DealerCreateParams,
@@ -274,14 +273,8 @@ export class Partnermax {
     );
   }
 
-  protected async authHeaders(
-    opts: FinalRequestOptions,
-    schemes: { apiKeyAuth?: boolean; bearerAuth?: boolean },
-  ): Promise<NullableHeaders | undefined> {
-    return buildHeaders([
-      schemes.apiKeyAuth ? await this.apiKeyAuth(opts) : null,
-      schemes.bearerAuth ? await this.bearerAuth(opts) : null,
-    ]);
+  protected async authHeaders(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
+    return buildHeaders([await this.apiKeyAuth(opts), await this.bearerAuth(opts)]);
   }
 
   protected async apiKeyAuth(opts: FinalRequestOptions): Promise<NullableHeaders | undefined> {
@@ -724,7 +717,7 @@ export class Partnermax {
         ...(options.timeout ? { 'X-Stainless-Timeout': String(Math.trunc(options.timeout / 1000)) } : {}),
         ...getPlatformHeaders(),
       },
-      await this.authHeaders(options, options.__security ?? { apiKeyAuth: true, bearerAuth: true }),
+      await this.authHeaders(options),
       this._options.defaultHeaders,
       bodyHeaders,
       options.headers,
@@ -808,10 +801,6 @@ export class Partnermax {
   /**
    * Human session login (cookie JWT) and API key lifecycle management.
    */
-  auth: API.Auth = new API.Auth(this);
-  /**
-   * Human session login (cookie JWT) and API key lifecycle management.
-   */
   keys: API.Keys = new API.Keys(this);
   /**
    * Provision, update, deactivate, and list dealers owned by the calling partner.
@@ -819,18 +808,11 @@ export class Partnermax {
   dealers: API.Dealers = new API.Dealers(this);
 }
 
-Partnermax.Auth = Auth;
 Partnermax.Keys = Keys;
 Partnermax.Dealers = Dealers;
 
 export declare namespace Partnermax {
   export type RequestOptions = Opts.RequestOptions;
-
-  export {
-    Auth as Auth,
-    type AuthLoginResponse as AuthLoginResponse,
-    type AuthLoginParams as AuthLoginParams,
-  };
 
   export {
     Keys as Keys,
