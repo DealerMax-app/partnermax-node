@@ -7,7 +7,7 @@ import { RequestOptions } from '../internal/request-options';
 import { path } from '../internal/utils/path';
 
 /**
- * Human session login (cookie JWT) and API key lifecycle management.
+ * API key lifecycle management — issue, list, revoke. The partner authenticates every request with `X-Api-Key` (preferred) or `Authorization: Bearer <key>`; the server identifies the partner from the key and scopes all reads/writes to dealers owned by that partner.
  */
 export class Keys extends APIResource {
   /**
@@ -27,8 +27,10 @@ export class Keys extends APIResource {
   /**
    * Creates a new API key for the calling partner. The key material is returned in
    * plaintext in the response and is never retrievable again — store it securely on
-   * first receipt. Can be called with a cookie session (from /v1/auth/login) or with
-   * an existing API key that has `can_issue_keys` capability.
+   * first receipt. Must be called with an existing API key that has the
+   * `can_issue_keys` capability (the initial key issued by DealerMAX support has
+   * this capability by default; rotated keys inherit it unless explicitly scoped
+   * down).
    *
    * @example
    * ```ts

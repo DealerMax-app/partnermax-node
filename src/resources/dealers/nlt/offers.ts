@@ -83,6 +83,13 @@ export interface NltOfferSummary {
   segment: 'A' | 'B' | 'C' | 'D' | 'E' | 'SUV' | 'VAN';
 
   /**
+   * VAT treatment of this offer (not the dealer). `private` →
+   * `monthly_canon_from_eur` is VAT-inclusive (×1.22). `business` → VAT-exclusive.
+   * Sourced from `nlt_offerte.solo_privati`.
+   */
+  vat_treatment: 'private' | 'business';
+
+  /**
    * Consumer-facing URL on the dealer's public site.
    */
   canonical_url?: string;
