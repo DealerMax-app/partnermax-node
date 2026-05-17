@@ -51,6 +51,7 @@ export class NltSettings extends APIResource {
    *       medium_eur: 3000,
    *       high_eur: 6000,
    *     },
+   *     image_mode: 'branded',
    *   },
    * );
    * ```
@@ -94,8 +95,9 @@ export interface DownPaymentTiers {
 }
 
 /**
- * Dealer-level NLT economics. VAT treatment is NOT a dealer-level field — it is a
- * property of the offer (see `NltOfferSummary.vat_treatment`).
+ * Dealer-level NLT economics + image rendering preferences. VAT treatment is NOT a
+ * dealer-level field — it is a property of the offer (see
+ * `NltOfferSummary.vat_treatment`).
  */
 export interface NltSettings {
   /**
@@ -117,6 +119,20 @@ export interface NltSettings {
   down_payment_tiers: DownPaymentTiers;
 
   effective_from: string;
+
+  /**
+   * How NLT offer cover images are rendered for this dealer (apimax:
+   * `nlt_image_mode`). `branded` (default): per-dealer composite. `scenario_locked`:
+   * single AI scenario fixed by the dealer. `scenario_seasonal`: AI scenario
+   * auto-rotated by Italian season.
+   */
+  image_mode: 'branded' | 'scenario_locked' | 'scenario_seasonal';
+
+  /**
+   * Only set when `image_mode='scenario_locked'`. One of the four AI scenarios
+   * available on `mnet_modelli_ai_foto.scenario`.
+   */
+  image_scenario_locked?: 'mediterraneo' | 'cortina' | 'milano' | 'showroom' | null;
 }
 
 export interface NltSettingUpdateParams {
@@ -134,7 +150,18 @@ export interface NltSettingUpdateParams {
   /**
    * Body param
    */
+  image_mode: 'branded' | 'scenario_locked' | 'scenario_seasonal';
+
+  /**
+   * Body param
+   */
   currency?: 'EUR';
+
+  /**
+   * Body param: Required when `image_mode='scenario_locked'`; must be null
+   * otherwise.
+   */
+  image_scenario_locked?: 'mediterraneo' | 'cortina' | 'milano' | 'showroom' | null;
 
   /**
    * Header param: Stripe-style idempotency key. Replaying the same request with the

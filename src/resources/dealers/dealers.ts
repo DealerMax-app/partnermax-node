@@ -140,8 +140,9 @@ export interface DealerDetail extends DealerSummary {
   metadata?: { [key: string]: string };
 
   /**
-   * Dealer-level NLT economics. VAT treatment is NOT a dealer-level field — it is a
-   * property of the offer (see `NltOfferSummary.vat_treatment`).
+   * Dealer-level NLT economics + image rendering preferences. VAT treatment is NOT a
+   * dealer-level field — it is a property of the offer (see
+   * `NltOfferSummary.vat_treatment`).
    */
   nlt_settings?: NltSettingsAPI.NltSettings;
 
