@@ -56,19 +56,20 @@ export class Offers extends APIResource {
 export interface NltOfferSummary {
   brand: string;
 
+  /**
+   * Dealer id (prefixed `dlr_<n>`).
+   */
   dealer_id: string;
 
   /**
    * Duration corresponding to the `monthly_canon_from_eur` quote.
    */
-  duration_months: 24 | 36 | 48;
-
-  fuel_type: 'electric' | 'hybrid' | 'plugin_hybrid' | 'petrol' | 'diesel' | 'lpg' | 'methane';
+  duration_months: 36 | 48 | 60;
 
   /**
    * Km/year corresponding to the `monthly_canon_from_eur` quote.
    */
-  km_per_year_at_quote: number;
+  km_per_year_at_quote: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
 
   model: string;
 
@@ -78,9 +79,16 @@ export interface NltOfferSummary {
    */
   monthly_canon_from_eur: number;
 
+  /**
+   * Numeric `nlt_offerte.id_offerta` as string. Use as the path parameter for the
+   * detail endpoint.
+   */
   offer_id: string;
 
-  segment: 'A' | 'B' | 'C' | 'D' | 'E' | 'SUV' | 'VAN';
+  /**
+   * Offer slug used in canonical URLs (`/noleggio-lungo-termine/{slug}`).
+   */
+  slug: string;
 
   /**
    * VAT treatment of this offer (not the dealer). `private` →
@@ -90,60 +98,64 @@ export interface NltOfferSummary {
   vat_treatment: 'private' | 'business';
 
   /**
-   * Consumer-facing URL on the dealer's public site.
+   * Consumer-facing URL on the dealer's public site:
+   * `https://{primary_domain}/noleggio-lungo-termine/{slug}`. Null when the dealer
+   * has no site row.
    */
   canonical_url?: string;
+
+  /**
+   * Raw Italian label from `nlt_offerte.alimentazione` (e.g. "Benzina", "Ibrido
+   * diesel"). Apimax-aligned, no enum normalization.
+   */
+  fuel_type?: string | null;
 
   has_promo?: boolean;
 
   image_url?: string;
 
+  /**
+   * Raw Italian label from `nlt_offerte.segmento` (e.g. "SUV piccoli", "Superiori").
+   * Apimax-aligned, no enum normalization.
+   */
+  segment?: string | null;
+
   trim?: string | null;
 }
 
 /**
- * Full offer detail. Shape mirrors apimax MCP `get_nlt_offer_details`
- * (`apimax/app/api/mcp_server.py::_tool_get_nlt_offer_details`) bit-for-bit so
- * partnermax SDK consumers stay aligned with the Custom GPT / MCP clients on the
- * DealerMAX network.
+ * Full offer detail. Field names: American English snake_case (Stripe-style SDK
+ * contract). Values: raw Italian, apimax-aligned. Shape mirrors apimax MCP
+ * `get_nlt_offer_details`
+ * (`apimax/app/api/mcp_server.py::_tool_get_nlt_offer_details`).
  */
 export interface OfferRetrieveResponse {
   found: boolean;
 
-  /**
-   * True when canon is VAT-inclusive (i.e. `solo_privati=true`).
-   */
-  iva_inclusa: boolean;
-
   network_dealer_count: number;
 
   /**
-   * Offer slug (stable identifier shared with apimax surfaces).
+   * Numeric `nlt_offerte.id_offerta` as string. Same value returned by the listing
+   * endpoint.
+   */
+  offer_id: string;
+
+  /**
+   * Offer slug (stable identifier shared with apimax surfaces and used in canonical
+   * URLs).
    */
   slug: string;
 
   title: string;
 
   /**
-   * Standard equipment list (one entry per item). Sourced from
-   * `mnet_dettagli.equipaggiamento` split on newlines/semicolons. Currently empty on
-   * every live offer (upstream column unpopulated); will auto-fill when the data
-   * flows in.
+   * True when canon is VAT-inclusive (i.e. `private_only=true`).
    */
-  accessori_di_serie?: Array<string>;
+  vat_included: boolean;
 
-  accessori_inclusi?: Array<OfferRetrieveResponse.AccessoriInclusi>;
+  available_addons?: OfferRetrieveResponse.AvailableAddons;
 
-  addons_disponibili?: OfferRetrieveResponse.AddonsDisponibili;
-
-  anticipo_scenari_eur?: OfferRetrieveResponse.AnticipoScenariEur | null;
-
-  anticipo_scenari_labels?: OfferRetrieveResponse.AnticipoScenariLabels | null;
-
-  /**
-   * Lowest canon across the partner network for this offer (primary dealer's price).
-   */
-  canone_mensile_min_eur?: number | null;
+  brand?: string | null;
 
   /**
    * AI-generated long-form description.
@@ -152,21 +164,13 @@ export interface OfferRetrieveResponse {
 
   description_short?: string | null;
 
-  /**
-   * Full Motornet technical sheet — apimax: `_get_dettagli_motornet`
-   * (`nlt_resolver.py:752`). Every non-null `mnet_dettagli` column for this
-   * `codice_motornet_uni` flattened into a plain dict (~30-40 keys typically
-   * populated out of 90 columns). Native units preserved: cilindrata (cc), kw, hp,
-   * coppia, accelerazione (s), velocita (km/h), lunghezza/larghezza/altezza/passo
-   * (cm), peso (kg), bagagliaio (L, free-text), emissioni_co2 (g/km, free-text),
-   * pneumatici_anteriori ("205/55 R17"), trazione, alimentazione, cambio, euro,
-   * autonomia_media, capacita_nominale_batteria, etc. Keys are stable across offers;
-   * values are int/float/bool/string (timestamps ISO-formatted).
-   */
-  dettagli_tecnici?: { [key: string]: unknown };
+  down_payment_scenarios_eur?: OfferRetrieveResponse.DownPaymentScenariosEur | null;
+
+  down_payment_scenarios_labels?: OfferRetrieveResponse.DownPaymentScenariosLabels | null;
 
   /**
-   * Raw Italian label from `nlt_offerte.alimentazione` (e.g. "Benzina", "Ibrida").
+   * Raw Italian label from `nlt_offerte.alimentazione` (e.g. "Benzina", "Ibrido
+   * diesel").
    */
   fuel_type?: string | null;
 
@@ -174,21 +178,27 @@ export interface OfferRetrieveResponse {
 
   image_url?: string;
 
+  included_accessories?: Array<OfferRetrieveResponse.IncludedAccessory>;
+
+  /**
+   * Services normally included in the canone. apimax: `_get_services_included`
+   * (`nlt_resolver.py:719`) reads global `nlt_services` is_active table.
+   */
+  included_services?: Array<OfferRetrieveResponse.IncludedService>;
+
   last_modified?: string;
 
-  marca?: string | null;
+  /**
+   * Lowest canon across the partner network for this offer (primary dealer's price).
+   */
+  min_monthly_canon_eur?: number | null;
 
-  modello?: string | null;
+  model?: string | null;
 
   /**
    * All the partner's dealers that can fulfil this offer, sorted by canon ASC.
    */
   network_offers?: Array<OfferRetrieveResponse.NetworkOffer>;
-
-  /**
-   * List price IVA-inclusive (vehicle + accessories + MSS).
-   */
-  prezzo_totale_eur?: number | null;
 
   primary_dealer_city?: string | null;
 
@@ -196,103 +206,116 @@ export interface OfferRetrieveResponse {
 
   primary_dealer_province?: string | null;
 
-  quotazioni?: Array<OfferRetrieveResponse.Quotazioni>;
-
-  segmento?: string | null;
-
-  /**
-   * Services normally included in the canone. apimax: `_get_services_included`
-   * (`nlt_resolver.py:719`) reads global `nlt_services` is_active table — same 8
-   * services across the network (Assicurazione RCA / Kasco / Incendio-Furto,
-   * Manutenzione, Assistenza Stradale, Bollo, Pneumatici, Veicolo in anticipo). Not
-   * per-offer.
-   */
-  servizi_inclusi?: Array<OfferRetrieveResponse.ServiziInclusi>;
-
   /**
    * Per-offer VAT scope: true → consumer-facing (B2C, VAT-inclusive). false →
-   * business (B2B, VAT-exclusive).
+   * business (B2B, VAT-exclusive). Sourced from `nlt_offerte.solo_privati`.
    */
-  solo_privati?: boolean | null;
+  private_only?: boolean | null;
+
+  quotations?: Array<OfferRetrieveResponse.Quotation>;
+
+  /**
+   * Raw Italian label from `nlt_offerte.segmento` (e.g. "SUV piccoli", "Superiori").
+   */
+  segment?: string | null;
+
+  /**
+   * Standard equipment list (one entry per item). Sourced from
+   * `mnet_dettagli.equipaggiamento` split on newlines/semicolons. Currently empty on
+   * every live offer (upstream column unpopulated); will auto-fill when the data
+   * flows in.
+   */
+  standard_equipment?: Array<string>;
 
   tags?: Array<OfferRetrieveResponse.Tag>;
 
   /**
-   * Raw Italian label from `nlt_offerte.cambio`.
+   * Full Motornet technical sheet — apimax: `_get_dettagli_motornet`
+   * (`nlt_resolver.py:752`). Every non-null `mnet_dettagli` column for this
+   * `codice_motornet_uni` flattened into a plain dict (~30-40 keys typically
+   * populated out of 90 columns). KEYS stay Italian because they are raw SQL column
+   * names: cilindrata (cc), kw, hp, coppia, accelerazione (s), velocita (km/h),
+   * lunghezza/larghezza/altezza/passo (cm), peso (kg), bagagliaio (L, free-text),
+   * emissioni_co2 (g/km, free-text), pneumatici_anteriori ("205/55 R17"), trazione,
+   * alimentazione, cambio, euro, autonomia_media, capacita_nominale_batteria, etc.
+   * Native units preserved; values are int/float/bool/string (timestamps
+   * ISO-formatted).
+   */
+  technical_details?: { [key: string]: unknown };
+
+  /**
+   * List price IVA-inclusive (vehicle + accessories + MSS).
+   */
+  total_price_eur?: number | null;
+
+  /**
+   * Raw Italian label from `nlt_offerte.cambio` (e.g. "Automatico sequenziale").
    */
   transmission?: string | null;
 
-  versione?: string | null;
+  trim?: string | null;
 }
 
 export namespace OfferRetrieveResponse {
-  export interface AccessoriInclusi {
-    codice: string;
+  export interface AvailableAddons {
+    replacement_vehicle?: AvailableAddons.ReplacementVehicle | null;
 
-    descrizione: string;
-
-    prezzo_extra_eur: number;
+    tires?: AvailableAddons.Tires | null;
   }
 
-  export interface AddonsDisponibili {
-    auto_sostitutiva?: AddonsDisponibili.AutoSostitutiva | null;
+  export namespace AvailableAddons {
+    export interface ReplacementVehicle {
+      category_description: string;
 
-    pneumatici?: AddonsDisponibili.Pneumatici | null;
-  }
-
-  export namespace AddonsDisponibili {
-    export interface AutoSostitutiva {
       /**
        * Replacement vehicle category (B fixed).
        */
-      categoria_default: string;
+      default_category: string;
 
-      categoria_descrizione: string;
-
-      costo_mensile_eur: number;
+      monthly_cost_eur: number;
     }
 
-    export interface Pneumatici {
-      /**
-       * Cost of one set of 4 tyres, EUR.
-       */
-      costo_treno_eur: number;
-
+    export interface Tires {
       /**
        * Tyre diameter in inches.
        */
-      diametro_in: number;
+      diameter_in: number;
 
       /**
        * Replacement rule (e.g. one set every 30 000 km, rounded up).
        */
-      regola_cambio: string;
+      replacement_rule: string;
+
+      /**
+       * Cost of one set of 4 tyres, EUR.
+       */
+      set_cost_eur: number;
     }
   }
 
-  export interface AnticipoScenariEur {
+  export interface DownPaymentScenariosEur {
     /**
      * 12.5% down-payment scenario, whole EUR.
      */
-    anticipo_medio: number;
+    medium: number;
 
     /**
      * 25% down-payment scenario, whole EUR (matches vetrina canon).
      */
-    anticipo_standard: number;
+    standard: number;
 
     /**
      * Zero down-payment scenario, whole EUR.
      */
-    anticipo_zero: number;
+    zero: number;
   }
 
-  export interface AnticipoScenariLabels {
-    anticipo_medio: string;
+  export interface DownPaymentScenariosLabels {
+    medium: string;
 
-    anticipo_standard: string;
+    standard: string;
 
-    anticipo_zero: string;
+    zero: string;
   }
 
   export interface Gallery {
@@ -301,12 +324,32 @@ export namespace OfferRetrieveResponse {
     url: string;
   }
 
-  export interface NetworkOffer {
-    canone_mensile_min_eur: number;
+  export interface IncludedAccessory {
+    code: string;
 
+    description: string;
+
+    extra_price_eur: number;
+  }
+
+  export interface IncludedService {
+    /**
+     * Service name (e.g. "Assicurazione RCA", "Manutenzione").
+     */
+    name: string;
+
+    /**
+     * Short human description (e.g. "Responsabilità Civile Auto").
+     */
+    description?: string | null;
+  }
+
+  export interface NetworkOffer {
     dealer_id: number;
 
     dealer_name: string;
+
+    min_monthly_canon_eur: number;
 
     city?: string | null;
 
@@ -323,29 +366,17 @@ export namespace OfferRetrieveResponse {
     review_count?: number | null;
   }
 
-  export interface Quotazioni {
+  export interface Quotation {
+    duration_months: 36 | 48 | 60;
+
+    km_per_year: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
+
     /**
-     * Displayed monthly canon for this (durata, km) cell. Computed by
+     * Displayed monthly canon for this (duration, km) cell. Computed by
      * `calcola_canone_vetrina` for the primary dealer of the partner network;
-     * VAT-inclusive when `solo_privati=true`.
+     * VAT-inclusive when `private_only=true`.
      */
-    canone_mensile_eur: number;
-
-    durata_mesi: 36 | 48 | 60;
-
-    km_inclusi_anno: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
-  }
-
-  export interface ServiziInclusi {
-    /**
-     * Service name (e.g. "Assicurazione RCA", "Manutenzione").
-     */
-    name: string;
-
-    /**
-     * Short human description (e.g. "Responsabilità Civile Auto").
-     */
-    description?: string | null;
+    monthly_canon_eur: number;
   }
 
   export interface Tag {
@@ -397,13 +428,21 @@ export interface OfferListParams {
 
   duration_months?: 24 | 36 | 48;
 
-  fuel_type?: 'electric' | 'hybrid' | 'plugin_hybrid' | 'petrol' | 'diesel' | 'lpg' | 'methane';
+  /**
+   * Raw Italian label (case-insensitive ILIKE match). Examples: "Benzina", "Diesel",
+   * "Ibrido benzina", "Ibrido diesel", "Elettrica", "GPL", "Metano".
+   */
+  fuel_type?: string;
 
   km_per_year?: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
 
   limit?: number;
 
-  segment?: 'A' | 'B' | 'C' | 'D' | 'E' | 'SUV' | 'VAN';
+  /**
+   * Raw Italian label (case-insensitive ILIKE substring match). Examples: "SUV
+   * piccoli", "SUV medi", "Superiori", "Medie", "Utilitarie".
+   */
+  segment?: string;
 }
 
 export declare namespace Offers {
