@@ -28,13 +28,18 @@ const client = new Partnermax({
 });
 
 const dealerDetail = await client.dealers.create({
+  address: 'xx',
   business_name: 'Rossi Automobili S.R.L.',
+  city: 'xx',
   contact_email: 'info@rossi-auto.it',
+  contact_phone: 'xxxxx',
   postal_code: '20121',
   primary_domain: 'rossi-auto.it',
   province_code: 'MI',
   vat_number: 'IT01234567890',
 });
+
+console.log(dealerDetail.dealer_id);
 ```
 
 ### Request & Response types
