@@ -10,6 +10,7 @@ export {
 } from './images';
 export {
   Vehicles,
+  type AIContent,
   type BulkCreateVehiclesResponse,
   type BulkRowOutcome,
   type VehicleDetail,

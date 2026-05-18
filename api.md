@@ -58,6 +58,7 @@ Methods:
 
 Types:
 
+- <code><a href="./src/resources/dealers/vehicles/vehicles.ts">AIContent</a></code>
 - <code><a href="./src/resources/dealers/vehicles/vehicles.ts">BulkCreateVehiclesResponse</a></code>
 - <code><a href="./src/resources/dealers/vehicles/vehicles.ts">BulkRowOutcome</a></code>
 - <code><a href="./src/resources/dealers/vehicles/vehicles.ts">VehicleDetail</a></code>
