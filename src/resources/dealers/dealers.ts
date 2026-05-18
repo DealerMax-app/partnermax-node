@@ -3,6 +3,21 @@
 import { APIResource } from '../../core/resource';
 import * as NltSettingsAPI from './nlt-settings';
 import { DownPaymentTiers, NltSettingUpdateParams, NltSettings } from './nlt-settings';
+import * as VehiclesAPI from './vehicles';
+import {
+  BulkCreateVehiclesResponse,
+  BulkRowOutcome,
+  VehicleBulkParams,
+  VehicleCreateParams,
+  VehicleDeleteParams,
+  VehicleDetail,
+  VehicleList,
+  VehicleListParams,
+  VehicleRetrieveParams,
+  VehicleSummary,
+  VehicleUpdateParams,
+  Vehicles,
+} from './vehicles';
 import * as NltAPI from './nlt/nlt';
 import { Nlt } from './nlt/nlt';
 import { APIPromise } from '../../core/api-promise';
@@ -16,6 +31,7 @@ import { path } from '../../internal/utils/path';
 export class Dealers extends APIResource {
   nltSettings: NltSettingsAPI.NltSettings = new NltSettingsAPI.NltSettings(this._client);
   nlt: NltAPI.Nlt = new NltAPI.Nlt(this._client);
+  vehicles: VehiclesAPI.Vehicles = new VehiclesAPI.Vehicles(this._client);
 
   /**
    * Provision a new dealer as child of the calling partner.
@@ -293,6 +309,7 @@ export interface DealerListParams {
 }
 
 Dealers.Nlt = Nlt;
+Dealers.Vehicles = Vehicles;
 
 export declare namespace Dealers {
   export {
@@ -311,4 +328,19 @@ export declare namespace Dealers {
   };
 
   export { Nlt as Nlt };
+
+  export {
+    Vehicles as Vehicles,
+    type BulkCreateVehiclesResponse as BulkCreateVehiclesResponse,
+    type BulkRowOutcome as BulkRowOutcome,
+    type VehicleDetail as VehicleDetail,
+    type VehicleList as VehicleList,
+    type VehicleSummary as VehicleSummary,
+    type VehicleCreateParams as VehicleCreateParams,
+    type VehicleRetrieveParams as VehicleRetrieveParams,
+    type VehicleUpdateParams as VehicleUpdateParams,
+    type VehicleListParams as VehicleListParams,
+    type VehicleDeleteParams as VehicleDeleteParams,
+    type VehicleBulkParams as VehicleBulkParams,
+  };
 }
