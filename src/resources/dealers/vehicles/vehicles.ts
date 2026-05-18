@@ -164,6 +164,63 @@ export class Vehicles extends APIResource {
 }
 
 /**
+ * AI-generated editorial content for a single vehicle.
+ *
+ * Produced asynchronously by the `usato_ai_content_worker` in `azurenet-engine`
+ * within ~60 seconds of vehicle creation. While the worker is still pending, every
+ * field is `null`; once the worker completes the row this object carries the full
+ * editorial set the cross-network AI consumers (MCP, ChatGPT Custom GPT, NLWeb)
+ * display.
+ *
+ * Layered descriptions:
+ *
+ * - `tagline` — 8–12 word headline. Use on listing cards / push notifications.
+ * - `short` — 1–2 sentence summary (≤ 220 chars). Use as the meta description
+ *   fallback.
+ * - `medium` — paragraph (~400 chars). Use on vehicle-detail SEO blurbs.
+ * - `long` — full marketing description (1500–3000 chars). Use on detail pages.
+ * - `highlights` — array of 3–7 selling points. Render as a bullet list above the
+ *   description.
+ * - `faq` — array of `{question, answer}` objects. Render as accordion / JSON-LD
+ *   `FAQPage`.
+ * - `seo_title` — ≤ 60 chars, `<title>`-ready.
+ * - `seo_description` — ≤ 160 chars, meta description-ready.
+ * - `slug` — URL-safe slug used in the canonical URL on the dealer site.
+ *
+ * The Italian language is canonical (`lang='it'`). Multi-language is on the
+ * roadmap; until then the partner gets exactly what the consumer AI surfaces get.
+ */
+export interface AIContent {
+  /**
+   * Array of `{question, answer}` objects. Each entry has two string keys; render
+   * with the partner's own FAQ UI or feed into a `FAQPage` JSON-LD block.
+   */
+  faq?: Array<{ [key: string]: string }> | null;
+
+  /**
+   * UTC timestamp of the most recent AI generation. `null` until the worker first
+   * processes the vehicle (≤ 60 seconds after vehicle creation).
+   */
+  generated_at?: string | null;
+
+  highlights?: Array<string> | null;
+
+  long?: string | null;
+
+  medium?: string | null;
+
+  seo_description?: string | null;
+
+  seo_title?: string | null;
+
+  short?: string | null;
+
+  slug?: string | null;
+
+  tagline?: string | null;
+}
+
+/**
  * Response of `POST /v1/dealers/{dealer_id}/vehicles/bulk`.
  *
  * HTTP status is `207 Multi-Status` (rather than 201) to make partial success
@@ -211,11 +268,24 @@ export interface BulkRowOutcome {
    * Full vehicle resource. Returned by `GET /v1/dealers/{id}/vehicles/{id}`,
    * `POST /v1/dealers/{id}/vehicles`, and `PATCH /v1/dealers/{id}/vehicles/{id}`.
    *
-   * `technical_details` carries the flat Motornet specs dict (Italian column names
-   * as keys: `cilindrata`, `kw`, `hp`, `lunghezza`, `consumo_medio`,
-   * `emissioni_co2`, etc.). Same shape conventions as `NltOfferDetail`
-   * (`feedback_partnermax_field_naming_us_english`: field names are English
-   * snake_case, raw catalogue values stay verbatim).
+   * Carries three layers of information:
+   *
+   * - **Partner-supplied** — what the partner posted (`plate`, `description`,
+   *   `sale_price_eur`, etc.).
+   * - **Catalogue-derived** — `technical_details` is the flat `mnet_dettagli_usato`
+   *   dict (Italian column keys: `cilindrata`, `kw`, `hp`, `lunghezza`,
+   *   `consumo_medio`, `emissioni_co2`, etc.). Same shape conventions as
+   *   `NltOfferDetail` per `feedback_partnermax_field_naming_us_english`.
+   * - **AI-derived** — `ai_content` carries the editorial output the cross-network
+   *   consumers display (descriptions, highlights, FAQ, SEO meta). `null` until the
+   *   worker has processed the vehicle.
+   *
+   * Fields the partner does NOT see through this surface (because they are
+   * dealer-internal margin/operations data the partner does not own):
+   * `cost_price_eur`, `inspection_expiry_date`, `road_tax_expiry_date`,
+   * `previous_owner_count`, `previous_ownership_transfer_date`, `last_service_*`.
+   * These exist in the underlying DB tables for the DealerMAX dashboard but are
+   * intentionally not exposed via the SDK.
    */
   vehicle?: VehicleDetail | null;
 }
@@ -224,16 +294,27 @@ export interface BulkRowOutcome {
  * Full vehicle resource. Returned by `GET /v1/dealers/{id}/vehicles/{id}`,
  * `POST /v1/dealers/{id}/vehicles`, and `PATCH /v1/dealers/{id}/vehicles/{id}`.
  *
- * `technical_details` carries the flat Motornet specs dict (Italian column names
- * as keys: `cilindrata`, `kw`, `hp`, `lunghezza`, `consumo_medio`,
- * `emissioni_co2`, etc.). Same shape conventions as `NltOfferDetail`
- * (`feedback_partnermax_field_naming_us_english`: field names are English
- * snake_case, raw catalogue values stay verbatim).
+ * Carries three layers of information:
+ *
+ * - **Partner-supplied** — what the partner posted (`plate`, `description`,
+ *   `sale_price_eur`, etc.).
+ * - **Catalogue-derived** — `technical_details` is the flat `mnet_dettagli_usato`
+ *   dict (Italian column keys: `cilindrata`, `kw`, `hp`, `lunghezza`,
+ *   `consumo_medio`, `emissioni_co2`, etc.). Same shape conventions as
+ *   `NltOfferDetail` per `feedback_partnermax_field_naming_us_english`.
+ * - **AI-derived** — `ai_content` carries the editorial output the cross-network
+ *   consumers display (descriptions, highlights, FAQ, SEO meta). `null` until the
+ *   worker has processed the vehicle.
+ *
+ * Fields the partner does NOT see through this surface (because they are
+ * dealer-internal margin/operations data the partner does not own):
+ * `cost_price_eur`, `inspection_expiry_date`, `road_tax_expiry_date`,
+ * `previous_owner_count`, `previous_ownership_transfer_date`, `last_service_*`.
+ * These exist in the underlying DB tables for the DealerMAX dashboard but are
+ * intentionally not exposed via the SDK.
  */
 export interface VehicleDetail {
   certified_km: number;
-
-  cost_price_eur: number;
 
   created_at: string;
 
@@ -265,6 +346,13 @@ export interface VehicleDetail {
 
   vehicle_id: string;
 
+  /**
+   * Editorial content generated by the partnermax AI pipeline. `null` immediately
+   * after `POST` until the worker has produced the row (≤ 60 seconds). Populated for
+   * the same consumer-AI surfaces (MCP, Custom GPT, NLWeb).
+   */
+  ai_content?: AIContent | null;
+
   alloy_wheel_size?: number | null;
 
   brand?: string | null;
@@ -276,29 +364,16 @@ export interface VehicleDetail {
   fuel_type?: string | null;
 
   /**
-   * Vehicle photos. Empty in v1 (media upload ships in v1.2).
+   * Vehicle photos in display order. The first entry is the cover photo
+   * (`position=1` in the dedicated images endpoint).
    */
   image_urls?: Array<string>;
-
-  inspection_expiry_date?: string | null;
-
-  last_service_date?: string | null;
-
-  last_service_km?: number | null;
-
-  last_service_notes?: string | null;
 
   model?: string | null;
 
   notes?: string | null;
 
-  previous_owner_count?: number | null;
-
-  previous_ownership_transfer_date?: string | null;
-
   registration_month?: number | null;
-
-  road_tax_expiry_date?: string | null;
 
   /**
    * Flat dict of every non-null `mnet_dettagli_usato` column for this
@@ -369,13 +444,6 @@ export interface VehicleCreateParams {
   certified_km: number;
 
   /**
-   * Body param: Cost basis to the dealer in EUR (partner/dealer internal). Not
-   * surfaced on consumer-facing AI surfaces; used by dealer reporting and margin
-   * analytics only.
-   */
-  cost_price_eur: number;
-
-  /**
    * Body param: Motornet UNI code identifying the exact vehicle configuration. Must
    * exist in `mnet_dettagli_usato` at submission time; otherwise the call returns
    * 422 `motornet_code_not_in_catalogue`. The partner is expected to source this
@@ -428,11 +496,6 @@ export interface VehicleCreateParams {
   extended_warranty_months?: number | null;
 
   /**
-   * Body param
-   */
-  inspection_expiry_date?: string | null;
-
-  /**
    * Body param: Maps to `azlease_usatoauto.is_vendita_enabled`. When false the row
    * is in stock but not offered for sale.
    */
@@ -445,45 +508,15 @@ export interface VehicleCreateParams {
   is_visible?: boolean;
 
   /**
-   * Body param
-   */
-  last_service_date?: string | null;
-
-  /**
-   * Body param
-   */
-  last_service_km?: number | null;
-
-  /**
-   * Body param
-   */
-  last_service_notes?: string | null;
-
-  /**
    * Body param: Free-form short notes; surfaced as
    * `mnet_dettagli.precisazioni`-style.
    */
   notes?: string | null;
 
   /**
-   * Body param
-   */
-  previous_owner_count?: number | null;
-
-  /**
-   * Body param: Date of the most recent ownership transfer, if known.
-   */
-  previous_ownership_transfer_date?: string | null;
-
-  /**
    * Body param: Month of registration (1–12).
    */
   registration_month?: number | null;
-
-  /**
-   * Body param
-   */
-  road_tax_expiry_date?: string | null;
 
   /**
    * Body param: If true the public price is displayed VAT-exposed (B2B); otherwise
@@ -546,11 +579,6 @@ export interface VehicleUpdateParams {
   /**
    * Body param
    */
-  cost_price_eur?: number | null;
-
-  /**
-   * Body param
-   */
   description?: string | null;
 
   /**
@@ -566,11 +594,6 @@ export interface VehicleUpdateParams {
   /**
    * Body param
    */
-  inspection_expiry_date?: string | null;
-
-  /**
-   * Body param
-   */
   is_for_sale?: boolean | null;
 
   /**
@@ -581,42 +604,12 @@ export interface VehicleUpdateParams {
   /**
    * Body param
    */
-  last_service_date?: string | null;
-
-  /**
-   * Body param
-   */
-  last_service_km?: number | null;
-
-  /**
-   * Body param
-   */
-  last_service_notes?: string | null;
-
-  /**
-   * Body param
-   */
   notes?: string | null;
 
   /**
    * Body param
    */
-  previous_owner_count?: number | null;
-
-  /**
-   * Body param
-   */
-  previous_ownership_transfer_date?: string | null;
-
-  /**
-   * Body param
-   */
   registration_month?: number | null;
-
-  /**
-   * Body param
-   */
-  road_tax_expiry_date?: string | null;
 
   /**
    * Body param
@@ -699,12 +692,6 @@ export namespace VehicleBulkParams {
     certified_km: number;
 
     /**
-     * Cost basis to the dealer in EUR (partner/dealer internal). Not surfaced on
-     * consumer-facing AI surfaces; used by dealer reporting and margin analytics only.
-     */
-    cost_price_eur: number;
-
-    /**
      * Motornet UNI code identifying the exact vehicle configuration. Must exist in
      * `mnet_dettagli_usato` at submission time; otherwise the call returns 422
      * `motornet_code_not_in_catalogue`. The partner is expected to source this from
@@ -743,8 +730,6 @@ export namespace VehicleBulkParams {
 
     extended_warranty_months?: number | null;
 
-    inspection_expiry_date?: string | null;
-
     /**
      * Maps to `azlease_usatoauto.is_vendita_enabled`. When false the row is in stock
      * but not offered for sale.
@@ -757,30 +742,15 @@ export namespace VehicleBulkParams {
      */
     is_visible?: boolean;
 
-    last_service_date?: string | null;
-
-    last_service_km?: number | null;
-
-    last_service_notes?: string | null;
-
     /**
      * Free-form short notes; surfaced as `mnet_dettagli.precisazioni`-style.
      */
     notes?: string | null;
 
-    previous_owner_count?: number | null;
-
-    /**
-     * Date of the most recent ownership transfer, if known.
-     */
-    previous_ownership_transfer_date?: string | null;
-
     /**
      * Month of registration (1–12).
      */
     registration_month?: number | null;
-
-    road_tax_expiry_date?: string | null;
 
     /**
      * If true the public price is displayed VAT-exposed (B2B); otherwise VAT-inclusive
@@ -801,6 +771,7 @@ Vehicles.Images = Images;
 
 export declare namespace Vehicles {
   export {
+    type AIContent as AIContent,
     type BulkCreateVehiclesResponse as BulkCreateVehiclesResponse,
     type BulkRowOutcome as BulkRowOutcome,
     type VehicleDetail as VehicleDetail,

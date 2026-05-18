@@ -13,6 +13,7 @@ export { Nlt } from './nlt/index';
 export { NltSettings, type DownPaymentTiers, type NltSettingUpdateParams } from './nlt-settings';
 export {
   Vehicles,
+  type AIContent,
   type BulkCreateVehiclesResponse,
   type BulkRowOutcome,
   type VehicleDetail,

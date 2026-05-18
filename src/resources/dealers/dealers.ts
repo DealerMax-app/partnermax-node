@@ -7,6 +7,7 @@ import * as NltAPI from './nlt/nlt';
 import { Nlt } from './nlt/nlt';
 import * as VehiclesAPI from './vehicles/vehicles';
 import {
+  AIContent,
   BulkCreateVehiclesResponse,
   BulkRowOutcome,
   VehicleBulkParams,
@@ -331,6 +332,7 @@ export declare namespace Dealers {
 
   export {
     Vehicles as Vehicles,
+    type AIContent as AIContent,
     type BulkCreateVehiclesResponse as BulkCreateVehiclesResponse,
     type BulkRowOutcome as BulkRowOutcome,
     type VehicleDetail as VehicleDetail,
