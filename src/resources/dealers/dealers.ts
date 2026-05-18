@@ -18,28 +18,7 @@ export class Dealers extends APIResource {
   nlt: NltAPI.Nlt = new NltAPI.Nlt(this._client);
 
   /**
-   * Creates a new dealer as a child of the calling partner account. The dealer is
-   * indexed in the cross-network AI-citation surfaces (MCP, Custom GPT, NLWeb,
-   * llms.txt) within five minutes. The partner is responsible for ensuring the
-   * business has consented to this provisioning and that the data provided is
-   * accurate.
-   *
-   * Idempotent on `Idempotency-Key` for 24 hours.
-   *
-   * @example
-   * ```ts
-   * const dealerDetail = await client.dealers.create({
-   *   business_name: 'Rossi Automobili S.R.L.',
-   *   contact_email: 'info@rossi-auto.it',
-   *   postal_code: '20121',
-   *   primary_domain: 'rossi-auto.it',
-   *   province_code: 'MI',
-   *   vat_number: 'IT01234567890',
-   *   activate: true,
-   *   contact_phone: '+390212345678',
-   *   metadata: { partner_internal_id: 'DLR-9182' },
-   * });
-   * ```
+   * Provision a new dealer as child of the calling partner.
    */
   create(params: DealerCreateParams, options?: RequestOptions): APIPromise<DealerDetail> {
     const { 'Idempotency-Key': idempotencyKey, ...body } = params;
@@ -54,30 +33,14 @@ export class Dealers extends APIResource {
   }
 
   /**
-   * Get a dealer's full detail
-   *
-   * @example
-   * ```ts
-   * const dealerDetail = await client.dealers.retrieve(
-   *   'dealer_id',
-   * );
-   * ```
+   * Fetch a dealer's full detail. ACL-protected.
    */
   retrieve(dealerID: string, options?: RequestOptions): APIPromise<DealerDetail> {
     return this._client.get(path`/v1/dealers/${dealerID}`, options);
   }
 
   /**
-   * Partial update of dealer fields. Only provided fields are modified. Setting
-   * `status: "inactive"` removes the dealer from the cross-network AI-citation
-   * surfaces within five minutes. Reactivation: send `status: "active"`.
-   *
-   * @example
-   * ```ts
-   * const dealerDetail = await client.dealers.update(
-   *   'dealer_id',
-   * );
-   * ```
+   * Update or toggle status. Inactive dealers drop from AI surfaces within 5 min.
    */
   update(dealerID: string, params: DealerUpdateParams, options?: RequestOptions): APIPromise<DealerDetail> {
     const { 'Idempotency-Key': idempotencyKey, ...body } = params;
@@ -92,13 +55,7 @@ export class Dealers extends APIResource {
   }
 
   /**
-   * Returns a cursor-paginated list of dealers belonging to the calling partner.
-   * Default ordering: most recently created first.
-   *
-   * @example
-   * ```ts
-   * const dealers = await client.dealers.list();
-   * ```
+   * List dealers owned by the calling partner. Cursor-paginated.
    */
   list(
     query: DealerListParams | null | undefined = {},
@@ -108,15 +65,7 @@ export class Dealers extends APIResource {
   }
 
   /**
-   * Marks the dealer as deleted while preserving the audit trail. Unlike
-   * deactivation (`PATCH status=inactive`), a deleted dealer cannot be reactivated
-   * by the partner — re-creation requires DealerMAX support. Use deactivation for
-   * reversible suspensions.
-   *
-   * @example
-   * ```ts
-   * await client.dealers.delete('dealer_id');
-   * ```
+   * Soft-delete. Audit trail retained; reactivation requires DealerMAX support.
    */
   delete(dealerID: string, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/v1/dealers/${dealerID}`, {
@@ -126,37 +75,57 @@ export class Dealers extends APIResource {
   }
 }
 
-export interface DealerDetail extends DealerSummary {
-  contact_email?: string;
+/**
+ * Full dealer payload used by single-resource and write endpoints.
+ */
+export interface DealerDetail {
+  address: string;
+
+  business_name: string;
+
+  city: string;
+
+  contact_email: string;
+
+  created_at: string;
+
+  dealer_id: string;
+
+  nlt_enabled: boolean;
+
+  partner_id: string;
+
+  postal_code: string;
+
+  primary_domain: string;
+
+  province_code: string;
+
+  status: 'active' | 'inactive' | 'deleted';
+
+  vat_number: string;
 
   contact_phone?: string | null;
 
   /**
-   * Live indexing state for each cross-network AI surface. Values may be `false`
-   * immediately after provisioning; reaches `true` within five minutes.
+   * Per-surface AI indexing state. All values may be `false` immediately after
+   * provisioning; reconciliation by `azurenet-engine` flips them within five
+   * minutes.
    */
   indexed_in_surfaces?: DealerDetail.IndexedInSurfaces;
 
+  last_active_at?: string | null;
+
   metadata?: { [key: string]: string };
 
-  /**
-   * Dealer-level NLT economics + image rendering preferences. VAT treatment is NOT a
-   * dealer-level field — it is a property of the offer (see
-   * `NltOfferSummary.vat_treatment`).
-   */
-  nlt_settings?: NltSettingsAPI.NltSettings;
-
-  partner_id?: string;
-
-  postal_code?: string;
-
-  vat_number?: string;
+  nlt_settings?: { [key: string]: unknown } | null;
 }
 
 export namespace DealerDetail {
   /**
-   * Live indexing state for each cross-network AI surface. Values may be `false`
-   * immediately after provisioning; reaches `true` within five minutes.
+   * Per-surface AI indexing state. All values may be `false` immediately after
+   * provisioning; reconciliation by `azurenet-engine` flips them within five
+   * minutes.
    */
   export interface IndexedInSurfaces {
     custom_gpt?: boolean;
@@ -169,6 +138,9 @@ export namespace DealerDetail {
   }
 }
 
+/**
+ * Compact dealer payload used by list endpoints.
+ */
 export interface DealerSummary {
   business_name: string;
 
@@ -184,21 +156,26 @@ export interface DealerSummary {
 
   status: 'active' | 'inactive' | 'deleted';
 
-  last_active_at?: string;
+  last_active_at?: string | null;
 }
 
+/**
+ * Response envelope for `GET /v1/dealers`.
+ */
 export interface DealerListResponse {
   data: Array<DealerSummary>;
 
   has_more: boolean;
 
-  /**
-   * Pass as `cursor` to retrieve next page; null when no more pages.
-   */
   next_cursor?: string | null;
 }
 
 export interface DealerCreateParams {
+  /**
+   * Body param
+   */
+  address: string;
+
   /**
    * Body param
    */
@@ -207,49 +184,50 @@ export interface DealerCreateParams {
   /**
    * Body param
    */
+  city: string;
+
+  /**
+   * Body param
+   */
   contact_email: string;
 
   /**
-   * Body param: Italian 5-digit postal code.
+   * Body param
+   */
+  contact_phone: string;
+
+  /**
+   * Body param
    */
   postal_code: string;
 
   /**
-   * Body param: Root domain of the dealer's public website.
+   * Body param
    */
   primary_domain: string;
 
   /**
-   * Body param: Italian two-letter province code, e.g., `MI`, `RM`, `TO`.
+   * Body param
    */
   province_code: string;
 
   /**
-   * Body param: Italian VAT number, 11 digits prefixed with `IT`.
+   * Body param
    */
   vat_number: string;
 
   /**
-   * Body param: If false, dealer is created in inactive state and does not appear in
-   * AI surfaces until activated.
+   * Body param
    */
   activate?: boolean;
 
   /**
-   * Body param: E.164 format recommended.
-   */
-  contact_phone?: string;
-
-  /**
-   * Body param: Free-form partner-supplied key-value pairs, max 16 keys, values max
-   * 500 chars.
+   * Body param
    */
   metadata?: { [key: string]: string };
 
   /**
-   * Header param: Stripe-style idempotency key. Replaying the same request with the
-   * same key within 24 hours returns the original response without re-executing.
-   * Strongly recommended on all POST, PATCH, and DELETE requests.
+   * Header param
    */
   'Idempotency-Key'?: string;
 }
@@ -258,61 +236,59 @@ export interface DealerUpdateParams {
   /**
    * Body param
    */
-  business_name?: string;
+  address?: string | null;
 
   /**
    * Body param
    */
-  contact_email?: string;
+  business_name?: string | null;
 
   /**
    * Body param
    */
-  contact_phone?: string;
+  city?: string | null;
 
   /**
    * Body param
    */
-  metadata?: { [key: string]: string };
+  contact_email?: string | null;
 
   /**
    * Body param
    */
-  postal_code?: string;
+  contact_phone?: string | null;
 
   /**
    * Body param
    */
-  province_code?: string;
+  metadata?: { [key: string]: string } | null;
 
   /**
-   * Body param: Toggle activation. Inactive dealers are removed from AI surfaces
-   * within 5 minutes.
+   * Body param
    */
-  status?: 'active' | 'inactive';
+  postal_code?: string | null;
 
   /**
-   * Header param: Stripe-style idempotency key. Replaying the same request with the
-   * same key within 24 hours returns the original response without re-executing.
-   * Strongly recommended on all POST, PATCH, and DELETE requests.
+   * Body param
+   */
+  province_code?: string | null;
+
+  /**
+   * Body param
+   */
+  status?: 'active' | 'inactive' | null;
+
+  /**
+   * Header param
    */
   'Idempotency-Key'?: string;
 }
 
 export interface DealerListParams {
-  /**
-   * Opaque pagination cursor from a previous response's `next_cursor`.
-   */
-  cursor?: string;
+  cursor?: string | null;
 
-  /**
-   * Maximum number of items to return.
-   */
   limit?: number;
 
-  /**
-   * Filter by dealer status.
-   */
   status?: 'active' | 'inactive' | 'all';
 }
 
