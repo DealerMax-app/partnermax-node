@@ -3,7 +3,9 @@
 import { APIResource } from '../../core/resource';
 import * as NltSettingsAPI from './nlt-settings';
 import { DownPaymentTiers, NltSettingUpdateParams, NltSettings } from './nlt-settings';
-import * as VehiclesAPI from './vehicles';
+import * as NltAPI from './nlt/nlt';
+import { Nlt } from './nlt/nlt';
+import * as VehiclesAPI from './vehicles/vehicles';
 import {
   BulkCreateVehiclesResponse,
   BulkRowOutcome,
@@ -17,9 +19,7 @@ import {
   VehicleSummary,
   VehicleUpdateParams,
   Vehicles,
-} from './vehicles';
-import * as NltAPI from './nlt/nlt';
-import { Nlt } from './nlt/nlt';
+} from './vehicles/vehicles';
 import { APIPromise } from '../../core/api-promise';
 import { buildHeaders } from '../../internal/headers';
 import { RequestOptions } from '../../internal/request-options';
