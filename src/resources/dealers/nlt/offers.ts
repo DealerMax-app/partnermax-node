@@ -5,23 +5,10 @@ import { APIPromise } from '../../../core/api-promise';
 import { RequestOptions } from '../../../internal/request-options';
 import { path } from '../../../internal/utils/path';
 
-/**
- * Dealer-aware reads of the shared NLT catalog — pricing reflects the dealer's markup and down-payment tiers.
- */
 export class Offers extends APIResource {
   /**
-   * Returns the full detail of one NLT offer including the 18-quotation matrix (3
-   * durations × 6 km/year tiers) with prices computed for each of the dealer's three
-   * down-payment tiers — 54 displayed price points total — plus included services,
-   * optional accessories, image gallery, and the dealer business card.
-   *
-   * @example
-   * ```ts
-   * const offer = await client.dealers.nlt.offers.retrieve(
-   *   'offer_id',
-   *   { dealer_id: 'dealer_id' },
-   * );
-   * ```
+   * Full offer detail. Payload shape mirrors apimax MCP `get_nlt_offer_details`
+   * bit-for-bit (mcp_server.py:1546-1606).
    */
   retrieve(
     offerID: string,
@@ -33,16 +20,18 @@ export class Offers extends APIResource {
   }
 
   /**
-   * Returns a cursor-paginated list of NLT offers available to the specified dealer,
-   * with monthly canon already repriced using the dealer's markup and down-payment
-   * tiers.
+   * Listing of NLT offers with monthly canon repriced for this dealer.
    *
-   * @example
-   * ```ts
-   * const offers = await client.dealers.nlt.offers.list(
-   *   'dealer_id',
-   * );
-   * ```
+   * Strategy:
+   *
+   * 1. Resolve + ACL the dealer.
+   * 2. Pull at most `limit + 1` offers from the catalog after the cursor. The extra
+   *    row lets us know if there's a next page without a second COUNT(\*) query.
+   * 3. Apply text/enum filters server-side via SQL where possible (brand, segment,
+   *    fuel) and the numeric `canone_max_eur` filter in Python after the pricing
+   *    pass (the DB has no "displayed canon" column; we synthesize it per dealer).
+   * 4. For each surviving offer, price the (duration, km) cells the caller filtered
+   *    to (if specified) or all 18, pick the cheapest cell as the headline.
    */
   list(
     dealerID: string,
@@ -53,122 +42,337 @@ export class Offers extends APIResource {
   }
 }
 
+/**
+ * Single row in the offers list. Pricing is dealer-aware.
+ *
+ * Field names: American English snake_case. Values: Italian raw, apimax-aligned
+ * (`fuel_type: "Benzina"`, `segment: "SUV piccoli"`). No enum normalization —
+ * apimax labels are surfaced verbatim, exactly as the detail endpoint does, so the
+ * partner client sees the same string in both listing and detail.
+ */
 export interface NltOfferSummary {
   brand: string;
 
   dealer_id: string;
 
-  /**
-   * Duration corresponding to the `monthly_canon_from_eur` quote.
-   */
-  duration_months: 24 | 36 | 48;
+  duration_months: number;
 
-  fuel_type: 'electric' | 'hybrid' | 'plugin_hybrid' | 'petrol' | 'diesel' | 'lpg' | 'methane';
-
-  /**
-   * Km/year corresponding to the `monthly_canon_from_eur` quote.
-   */
   km_per_year_at_quote: number;
 
   model: string;
 
-  /**
-   * Lowest displayed monthly canon across all duration / km / down-payment
-   * combinations for this dealer.
-   */
   monthly_canon_from_eur: number;
 
   offer_id: string;
 
-  segment: 'A' | 'B' | 'C' | 'D' | 'E' | 'SUV' | 'VAN';
+  slug: string;
 
-  /**
-   * Consumer-facing URL on the dealer's public site.
-   */
-  canonical_url?: string;
+  vat_treatment: 'private' | 'business';
+
+  canonical_url?: string | null;
+
+  fuel_type?: string | null;
 
   has_promo?: boolean;
 
-  image_url?: string;
+  image_url?: string | null;
+
+  segment?: string | null;
 
   trim?: string | null;
 }
 
-export interface OfferRetrieveResponse extends NltOfferSummary {
-  included_services: Array<
-    'full_insurance' | 'maintenance' | 'road_tax' | 'tires' | 'replacement_vehicle' | 'roadside_assistance'
-  >;
+/**
+ * Full offer detail.
+ *
+ * Shape mirrors `_tool_get_nlt_offer_details` (apimax MCP) with all field names
+ * translated to American English snake_case for the partner SDK contract. VALUES
+ * stay Italian raw (apimax-aligned). The dict `technical_details` keeps Italian
+ * KEYS because they are `mnet_dettagli` column names (raw DB).
+ */
+export interface OfferRetrieveResponse {
+  found: boolean;
+
+  network_dealer_count: number;
+
+  offer_id: string;
+
+  slug: string;
+
+  title: string;
+
+  vat_included: boolean;
 
   /**
-   * All 54 displayed price points (18 base quotations × 3 down-payment tiers).
+   * Container for optional add-ons (apimax: `addons_disponibili`).
    */
-  quotations: Array<OfferRetrieveResponse.Quotation>;
+  available_addons?: OfferRetrieveResponse.AvailableAddons;
 
-  specs: OfferRetrieveResponse.Specs;
+  brand?: string | null;
 
-  dealer_card?: OfferRetrieveResponse.DealerCard;
+  description_full?: string | null;
 
-  image_gallery?: Array<string>;
+  description_short?: string | null;
 
-  optional_accessories?: Array<OfferRetrieveResponse.OptionalAccessory>;
+  /**
+   * Three down-payment scenarios in EUR (whole amounts).
+   *
+   * apimax: `anticipo_scenari_eur` (keys remapped to American English snake_case for
+   * partnermax SDK: `zero/medium/standard`).
+   */
+  down_payment_scenarios_eur?: OfferRetrieveResponse.DownPaymentScenariosEur | null;
+
+  /**
+   * Italian labels paired 1:1 with `NltDownPaymentScenariosEur`.
+   *
+   * apimax: `anticipo_scenari_labels` — used by Custom GPT to render the three
+   * options in conversation. Values stay in Italian raw ("Senza anticipo" /
+   * "Anticipo 12,5%" / "Anticipo 25%").
+   */
+  down_payment_scenarios_labels?: OfferRetrieveResponse.DownPaymentScenariosLabels | null;
+
+  faqs?: Array<OfferRetrieveResponse.Faq>;
+
+  fuel_type?: string | null;
+
+  gallery?: Array<OfferRetrieveResponse.Gallery>;
+
+  image_url?: string | null;
+
+  included_accessories?: Array<OfferRetrieveResponse.IncludedAccessory>;
+
+  included_services?: Array<OfferRetrieveResponse.IncludedService>;
+
+  last_modified?: string | null;
+
+  min_monthly_canon_eur?: number | null;
+
+  model?: string | null;
+
+  network_offers?: Array<OfferRetrieveResponse.NetworkOffer>;
+
+  primary_dealer_city?: string | null;
+
+  primary_dealer_name?: string | null;
+
+  primary_dealer_province?: string | null;
+
+  private_only?: boolean | null;
+
+  quotations?: Array<OfferRetrieveResponse.Quotation>;
+
+  segment?: string | null;
+
+  standard_equipment?: Array<string>;
+
+  tags?: Array<OfferRetrieveResponse.Tag>;
+
+  technical_details?: { [key: string]: unknown };
+
+  total_price_eur?: number | null;
+
+  transmission?: string | null;
+
+  trim?: string | null;
 }
 
 export namespace OfferRetrieveResponse {
-  export interface Quotation {
+  /**
+   * Container for optional add-ons (apimax: `addons_disponibili`).
+   */
+  export interface AvailableAddons {
     /**
-     * Down-payment amount in EUR for this tier (from the dealer's NLT settings).
+     * Replacement-vehicle add-on lookup (apimax:
+     * `addons_disponibili.auto_sostitutiva`).
+     *
+     * Always category B (utilitaria) per founder decision — the spoken "average
+     * customer" segment.
      */
-    down_payment_eur: number;
-
-    down_payment_tier: 'low' | 'medium' | 'high';
-
-    duration_months: 24 | 36 | 48;
-
-    km_per_year: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
+    replacement_vehicle?: AvailableAddons.ReplacementVehicle | null;
 
     /**
-     * Displayed monthly canon (includes dealer markup + VAT treatment).
+     * Tyre-replacement add-on lookup (apimax: `addons_disponibili.pneumatici`).
+     *
+     * Populated when `mnet_dettagli.pneumatici_anteriori` matches `R\d+` and a row
+     * exists in `nlt_pneumatici` for that diameter. Null otherwise. Replacement rule
+     * (founder decision 2026-05-12): 1 set of 4 tyres every 30 000 km, rounded up.
      */
-    monthly_canon_eur: number;
+    tires?: AvailableAddons.Tires | null;
   }
 
-  export interface Specs {
-    co2_g_per_km?: number | null;
+  export namespace AvailableAddons {
+    /**
+     * Replacement-vehicle add-on lookup (apimax:
+     * `addons_disponibili.auto_sostitutiva`).
+     *
+     * Always category B (utilitaria) per founder decision — the spoken "average
+     * customer" segment.
+     */
+    export interface ReplacementVehicle {
+      category_description: string;
 
-    engine_displacement_cc?: number | null;
+      default_category: string;
 
-    height_mm?: number | null;
+      monthly_cost_eur: number;
+    }
 
-    length_mm?: number | null;
+    /**
+     * Tyre-replacement add-on lookup (apimax: `addons_disponibili.pneumatici`).
+     *
+     * Populated when `mnet_dettagli.pneumatici_anteriori` matches `R\d+` and a row
+     * exists in `nlt_pneumatici` for that diameter. Null otherwise. Replacement rule
+     * (founder decision 2026-05-12): 1 set of 4 tyres every 30 000 km, rounded up.
+     */
+    export interface Tires {
+      diameter_in: number;
 
-    power_kw?: number | null;
+      replacement_rule: string;
 
-    transmission?: string | null;
-
-    trunk_litres?: number | null;
-
-    width_mm?: number | null;
+      set_cost_eur: number;
+    }
   }
 
-  export interface DealerCard {
-    business_name?: string;
+  /**
+   * Three down-payment scenarios in EUR (whole amounts).
+   *
+   * apimax: `anticipo_scenari_eur` (keys remapped to American English snake_case for
+   * partnermax SDK: `zero/medium/standard`).
+   */
+  export interface DownPaymentScenariosEur {
+    medium: number;
 
-    city?: string;
+    standard: number;
+
+    zero: number;
+  }
+
+  /**
+   * Italian labels paired 1:1 with `NltDownPaymentScenariosEur`.
+   *
+   * apimax: `anticipo_scenari_labels` — used by Custom GPT to render the three
+   * options in conversation. Values stay in Italian raw ("Senza anticipo" /
+   * "Anticipo 12,5%" / "Anticipo 25%").
+   */
+  export interface DownPaymentScenariosLabels {
+    medium: string;
+
+    standard: string;
+
+    zero: string;
+  }
+
+  /**
+   * One Italian Q&A entry derived per-offer.
+   *
+   * apimax: `build_offer_faqs` in `seo_engine/nlt_faq_builder.py` — generates up to
+   * ~11 Q&A pairs (dimensions, fuel, transmission, CO2, monthly canon at preset
+   * combo, available durations, VAT inclusion, down-payment tiers, etc.). Partnermax
+   * surfaces them all, 1:1.
+   */
+  export interface Faq {
+    answer: string;
+
+    question: string;
+  }
+
+  /**
+   * One image in the offer gallery (apimax: `gallery[]`).
+   */
+  export interface Gallery {
+    is_cover: boolean;
+
+    url: string;
+  }
+
+  /**
+   * One accessory bundled with the offer (apimax: `accessori_inclusi[]`).
+   */
+  export interface IncludedAccessory {
+    code: string;
+
+    description: string;
+
+    extra_price_eur: number;
+  }
+
+  /**
+   * One NLT service normally included in the canone.
+   *
+   * apimax: `_get_services_included` (`nlt_resolver.py:719`). Source is the global
+   * `nlt_services` table (active rows only). Same set of services across the network
+   * (Assicurazione RCA / Kasco / Incendio-Furto, Manutenzione, Assistenza Stradale,
+   * Bollo, Pneumatici, Veicolo in anticipo, Vettura sostitutiva). Not per-offer.
+   */
+  export interface IncludedService {
+    name: string;
+
+    description?: string | null;
+  }
+
+  /**
+   * One network dealer's quote for this offer (apimax: `network_offers[]`).
+   *
+   * Sorted by `min_monthly_canon_eur ASC`. In partnermax this list is scoped to
+   * dealers owned by the calling partner (`utenti.parent_id = partner.user_id`) —
+   * same shape as the apimax cross-network list, partner-scoped to avoid data
+   * leakage.
+   */
+  export interface NetworkOffer {
+    dealer_id: number;
+
+    dealer_name: string;
+
+    min_monthly_canon_eur: number;
+
+    city?: string | null;
+
+    contact_url?: string | null;
+
+    google_maps_url?: string | null;
 
     phone?: string | null;
 
-    primary_domain?: string;
+    province?: string | null;
 
-    province_code?: string;
+    rating_value?: number | null;
+
+    review_count?: number | null;
   }
 
-  export interface OptionalAccessory {
-    label: string;
+  /**
+   * One priced cell of the 18-combination matrix.
+   *
+   * apimax: `quotazioni[]` entry — `_compute_quotazioni_dealer_aware`
+   * (mcp_server.py:180). Reflects the dealer's vetrina formula applied to each
+   * (durata, km) combo; cells with implausible canon (<€50) are dropped upstream, so
+   * the list may contain fewer than 18 rows.
+   */
+  export interface Quotation {
+    duration_months: number;
 
-    monthly_canon_delta_eur: number;
+    km_per_year: number;
+
+    monthly_canon_eur: number;
+  }
+
+  /**
+   * Category tag for an offer (apimax: `tags[]`).
+   *
+   * Populated from `nlt_offerta_tag` ⋈ `nlt_offerte_tag`. Examples in production:
+   * "Promo", "Stock pronto", "GreenChoice".
+   */
+  export interface Tag {
+    name: string;
+
+    color?: string | null;
+
+    icon?: string | null;
   }
 }
 
+/**
+ * Cursor-paginated list of offer summaries.
+ */
 export interface OfferListResponse {
   data: Array<NltOfferSummary>;
 
@@ -178,38 +382,25 @@ export interface OfferListResponse {
 }
 
 export interface OfferRetrieveParams {
-  /**
-   * Identifier of a dealer owned by the calling partner. Cross-partner access
-   * returns 403 forbidden_dealer_not_owned.
-   */
   dealer_id: string;
 }
 
 export interface OfferListParams {
-  /**
-   * Filter by brand name, case-insensitive (e.g., `Fiat`).
-   */
-  brand?: string;
+  brand?: string | null;
 
-  /**
-   * Upper bound on displayed monthly canon (EUR).
-   */
-  canone_max_eur?: number;
+  canone_max_eur?: number | null;
 
-  /**
-   * Opaque pagination cursor.
-   */
-  cursor?: string;
+  cursor?: string | null;
 
-  duration_months?: 24 | 36 | 48;
+  duration_months?: number | null;
 
-  fuel_type?: 'electric' | 'hybrid' | 'plugin_hybrid' | 'petrol' | 'diesel' | 'lpg' | 'methane';
+  fuel_type?: string | null;
 
-  km_per_year?: 10000 | 15000 | 20000 | 25000 | 30000 | 40000;
+  km_per_year?: number | null;
 
   limit?: number;
 
-  segment?: 'A' | 'B' | 'C' | 'D' | 'E' | 'SUV' | 'VAN';
+  segment?: string | null;
 }
 
 export declare namespace Offers {

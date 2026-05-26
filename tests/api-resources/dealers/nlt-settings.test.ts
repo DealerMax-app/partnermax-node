@@ -23,13 +23,12 @@ describe('resource nltSettings', () => {
   // Mock server tests are disabled
   test.skip('update: only required params', async () => {
     const responsePromise = client.dealers.nltSettings.update('dealer_id', {
-      agency_markup_percent: 3.5,
+      agency_markup_percent: 0,
       down_payment_tiers: {
-        high_eur: 6000,
-        low_eur: 0,
-        medium_eur: 3000,
+        high: { fixed_eur: 0, percent_of_list: 0 },
+        low: { fixed_eur: 0, percent_of_list: 0 },
+        medium: { fixed_eur: 0, percent_of_list: 0 },
       },
-      vat_treatment: 'private',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -43,15 +42,15 @@ describe('resource nltSettings', () => {
   // Mock server tests are disabled
   test.skip('update: required and optional params', async () => {
     const response = await client.dealers.nltSettings.update('dealer_id', {
-      agency_markup_percent: 3.5,
+      agency_markup_percent: 0,
       down_payment_tiers: {
-        high_eur: 6000,
-        low_eur: 0,
-        medium_eur: 3000,
+        high: { fixed_eur: 0, percent_of_list: 0 },
+        low: { fixed_eur: 0, percent_of_list: 0 },
+        medium: { fixed_eur: 0, percent_of_list: 0 },
       },
-      vat_treatment: 'private',
       currency: 'EUR',
-      'Idempotency-Key': '182bd5e5-6e1a-4fe4-a799-aa6d9a6ab26e',
+      image_mode: 'branded',
+      image_scenario_locked: 'mediterraneo',
     });
   });
 });

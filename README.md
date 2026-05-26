@@ -28,13 +28,18 @@ const client = new Partnermax({
 });
 
 const dealerDetail = await client.dealers.create({
+  address: 'xx',
   business_name: 'Rossi Automobili S.R.L.',
+  city: 'xx',
   contact_email: 'info@rossi-auto.it',
+  contact_phone: 'xxxxx',
   postal_code: '20121',
   primary_domain: 'rossi-auto.it',
   province_code: 'MI',
   vat_number: 'IT01234567890',
 });
+
+console.log(dealerDetail.dealer_id);
 ```
 
 ### Request & Response types
@@ -54,6 +59,50 @@ const dealers: Partnermax.DealerListResponse = await client.dealers.list();
 ```
 
 Documentation for each method, request param, and response field are available in docstrings and will appear on hover in most modern editors.
+
+## File uploads
+
+Request parameters that correspond to file uploads can be passed in many different forms:
+
+- `File` (or an object with the same structure)
+- a `fetch` `Response` (or an object with the same structure)
+- an `fs.ReadStream`
+- the return value of our `toFile` helper
+
+```ts
+import fs from 'fs';
+import Partnermax, { toFile } from 'partnermax';
+
+const client = new Partnermax();
+
+// If you have access to Node `fs` we recommend using `fs.createReadStream()`:
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: fs.createReadStream('/path/to/file'),
+});
+
+// Or if you have the web `File` API you can pass a `File` instance:
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: new File(['my bytes'], 'file'),
+});
+
+// You can also pass a `fetch` `Response`:
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: await fetch('https://somesite/file'),
+});
+
+// Finally, if none of the above are convenient, you can use our `toFile` helper:
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: await toFile(Buffer.from('my bytes'), 'file'),
+});
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: await toFile(new Uint8Array([0, 1, 2]), 'file'),
+});
+```
 
 ## Handling errors
 
