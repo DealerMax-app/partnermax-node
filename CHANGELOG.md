@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.1 (2026-06-26)
+
+Full Changelog: [v0.2.0...v0.2.1](https://github.com/DealerMax-app/partnermax-node/compare/v0.2.0...v0.2.1)
+
+### Bug Fixes
+
+* publish TypeScript SDK to npm via OIDC trusted publishing ([7503130](https://github.com/DealerMax-app/partnermax-node/commit/750313042dc7ac2261240df9bf5f27b4a7d120cb))
+
+
+### Chores
+
+* update SDK settings ([ad88787](https://github.com/DealerMax-app/partnermax-node/commit/ad88787327cbd919fa76731702888b0b0d87855f))
+
 ## 0.2.0 (2026-06-26)
 
 Full Changelog: [v0.1.0...v0.2.0](https://github.com/DealerMax-app/partnermax-node/compare/v0.1.0...v0.2.0)
