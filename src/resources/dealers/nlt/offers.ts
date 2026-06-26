@@ -80,6 +80,8 @@ export interface NltOfferSummary {
   segment?: string | null;
 
   trim?: string | null;
+
+  vehicle_type?: 'auto' | 'vcom';
 }
 
 /**
@@ -161,6 +163,8 @@ export interface OfferRetrieveResponse {
 
   quotations?: Array<OfferRetrieveResponse.Quotation>;
 
+  schema_org?: { [key: string]: unknown } | null;
+
   segment?: string | null;
 
   standard_equipment?: Array<string>;
@@ -174,6 +178,8 @@ export interface OfferRetrieveResponse {
   transmission?: string | null;
 
   trim?: string | null;
+
+  vehicle_type?: 'auto' | 'vcom';
 }
 
 export namespace OfferRetrieveResponse {
@@ -401,6 +407,13 @@ export interface OfferListParams {
   limit?: number;
 
   segment?: string | null;
+
+  /**
+   * Macro discriminator: 'auto' (passenger vehicles) or 'vcom' (light commercial ≤35
+   * q.li: vans, panel trucks, multispace, pickups, minibuses). Omit to return the
+   * mixed catalog.
+   */
+  vehicle_type?: string | null;
 }
 
 export declare namespace Offers {

@@ -2,6 +2,7 @@
 
 import { APIResource } from '../../core/resource';
 import { APIPromise } from '../../core/api-promise';
+import { buildHeaders } from '../../internal/headers';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
@@ -36,12 +37,23 @@ export class NltSettings extends APIResource {
    * in the canonical DataMax pricing model, not per-dealer. The offer detail
    * endpoint surfaces it per row instead.
    *
-   * The Idempotency middleware handles `Idempotency-Key` replay outside this
-   * handler; we just need to make the write itself idempotent at the row level (a
-   * re-applied identical PATCH is a no-op by construction).
+   * `Idempotency-Key` replay uses the shared endpoint helper; a re-applied identical
+   * PATCH is also a row-level no-op by construction.
    */
-  update(dealerID: string, body: NltSettingUpdateParams, options?: RequestOptions): APIPromise<NltSettings> {
-    return this._client.patch(path`/v1/dealers/${dealerID}/nlt-settings`, { body, ...options });
+  update(
+    dealerID: string,
+    params: NltSettingUpdateParams,
+    options?: RequestOptions,
+  ): APIPromise<NltSettings> {
+    const { 'Idempotency-Key': idempotencyKey, ...body } = params;
+    return this._client.patch(path`/v1/dealers/${dealerID}/nlt-settings`, {
+      body,
+      ...options,
+      headers: buildHeaders([
+        { ...(idempotencyKey != null ? { 'Idempotency-Key': idempotencyKey } : undefined) },
+        options?.headers,
+      ]),
+    });
   }
 }
 
@@ -207,14 +219,17 @@ export interface NltSettings {
 
   image_mode?: 'branded' | 'scenario_locked' | 'scenario_seasonal';
 
-  image_scenario_locked?: 'mediterraneo' | 'cortina' | 'milano' | 'showroom' | null;
+  image_scenario_locked?: 'mediterraneo' | 'cortina' | 'milano' | 'showroom' | 'building' | null;
 }
 
 export interface NltSettingUpdateParams {
+  /**
+   * Body param
+   */
   agency_markup_percent: number;
 
   /**
-   * Three down-payment scenarios (basso / medio / alto).
+   * Body param: Three down-payment scenarios (basso / medio / alto).
    *
    * No strict-ascending validation: the final EUR amount depends on the offer's list
    * price (`tier.percent_of_list / 100 * listino_imponibile + tier.fixed_eur`), so a
@@ -224,11 +239,25 @@ export interface NltSettingUpdateParams {
    */
   down_payment_tiers: DownPaymentTiers;
 
+  /**
+   * Body param
+   */
   currency?: 'EUR';
 
+  /**
+   * Body param
+   */
   image_mode?: 'branded' | 'scenario_locked' | 'scenario_seasonal';
 
-  image_scenario_locked?: 'mediterraneo' | 'cortina' | 'milano' | 'showroom' | null;
+  /**
+   * Body param
+   */
+  image_scenario_locked?: 'mediterraneo' | 'cortina' | 'milano' | 'showroom' | 'building' | null;
+
+  /**
+   * Header param
+   */
+  'Idempotency-Key'?: string;
 }
 
 export declare namespace NltSettings {
