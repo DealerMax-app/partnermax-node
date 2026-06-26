@@ -51,6 +51,7 @@ describe('resource nltSettings', () => {
       currency: 'EUR',
       image_mode: 'branded',
       image_scenario_locked: 'mediterraneo',
+      'Idempotency-Key': 'Idempotency-Key',
     });
   });
 });

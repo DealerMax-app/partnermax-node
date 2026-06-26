@@ -52,6 +52,7 @@ describe('resource offers', () => {
           km_per_year: 0,
           limit: 1,
           segment: 'segment',
+          vehicle_type: 'vcom',
         },
         { path: '/_stainless_unknown_path' },
       ),
