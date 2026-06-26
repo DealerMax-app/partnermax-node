@@ -6,47 +6,39 @@ import { buildHeaders } from '../../internal/headers';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
-/**
- * Per-dealer NLT economics: agency markup percent and three down-payment tiers.
- */
 export class NltSettings extends APIResource {
   /**
-   * Get current NLT economics for a dealer
-   *
-   * @example
-   * ```ts
-   * const nltSettings =
-   *   await client.dealers.nltSettings.retrieve('dealer_id');
-   * ```
+   * Return current NLT economics for the dealer.
    */
   retrieve(dealerID: string, options?: RequestOptions): APIPromise<NltSettings> {
     return this._client.get(path`/v1/dealers/${dealerID}/nlt-settings`, options);
   }
 
   /**
-   * Sets the dealer's agency markup percent (0–10) and three down-payment tiers (low
-   * / medium / high). Down-payment tiers MUST be in strictly ascending order.
-   * Changes propagate to the cross-network AI surfaces within five minutes.
+   * Set markup percent (0-10) and three down-payment tiers (strictly ascending).
    *
-   * The displayed canon for an offer is computed as:
-   * `displayed_canon = base_canon × (1 + agency_markup_percent / 100) × adjustment_for_down_payment_tier × vat_multiplier`
-   * where `vat_multiplier = 1.22` if `vat_treatment = "private"`, else `1.0`.
+   * Validation:
    *
-   * @example
-   * ```ts
-   * const nltSettings = await client.dealers.nltSettings.update(
-   *   'dealer_id',
-   *   {
-   *     agency_markup_percent: 3.5,
-   *     down_payment_tiers: {
-   *       low_eur: 0,
-   *       medium_eur: 3000,
-   *       high_eur: 6000,
-   *     },
-   *     vat_treatment: 'private',
-   *   },
-   * );
-   * ```
+   * - `agency_markup_percent` ∈ [0, 10] (Pydantic).
+   * - `down_payment_tiers.{low,medium,high}` each
+   *   `{percent_of_list (0–100), fixed_eur (≥0)}`. No strict-ascending check — the
+   *   final EUR per tier is offer-dependent (`listino_imponibile * pct + eur`).
+   *
+   * Persistence:
+   *
+   * - `agency_markup_percent` → `dealer_public.nlt_agency_percent` (rounded to int;
+   *   live column is `Integer NOT NULL DEFAULT 2`).
+   * - `down_payment_tiers` → `dealer_public.nlt_anticipi_config` JSONB, stored in
+   *   apimax shape `[{"pct": <0..1>, "eur": <int>}, ...]`. The partner-facing
+   *   `percent_of_list` (0–100) is divided by 100 to keep the column byte-compatible
+   *   with the DealerMAX UI calculator that reads the same JSONB.
+   *
+   * There is NO `vat_treatment` field: VAT is per-offer (`nlt_offerte.solo_privati`)
+   * in the canonical DataMax pricing model, not per-dealer. The offer detail
+   * endpoint surfaces it per row instead.
+   *
+   * `Idempotency-Key` replay uses the shared endpoint helper; a re-applied identical
+   * PATCH is also a row-level no-op by construction.
    */
   update(
     dealerID: string,
@@ -66,51 +58,168 @@ export class NltSettings extends APIResource {
 }
 
 /**
- * Three down-payment scenarios shown to consumers, in strictly ascending order
- * (low < medium < high).
+ * Three down-payment scenarios (basso / medio / alto).
+ *
+ * No strict-ascending validation: the final EUR amount depends on the offer's list
+ * price (`tier.percent_of_list / 100 * listino_imponibile + tier.fixed_eur`), so a
+ * tier that looks larger by % can produce a smaller EUR on cheap vehicles. Label
+ * semantics (low/medium/high) are advisory — apimax/DealerMAX UI treats the 3
+ * positions as opaque slots ordered by intent.
  */
 export interface DownPaymentTiers {
   /**
-   * Highest down-payment scenario.
+   * One down-payment tier — percent of list price + flat EUR.
+   *
+   * apimax: `dealer_public.nlt_anticipi_config` is a JSONB list of three
+   * `{"pct": <0..1>, "eur": <int>}` entries. The final EUR applied to a deal is
+   * `listino_imponibile * pct + eur` (see
+   * `apimax/app/services/nlt/calculator.py::calcola_anticipo_eur`).
+   *
+   * Partnermax API exposes `percent_of_list` as a 0–100 number (UI-friendly: write
+   * `12.5`, not `0.125`); the router persists `pct = percent_of_list / 100` to stay
+   * byte-compatible with the DealerMAX UI calculator.
    */
-  high_eur: number;
+  high: DownPaymentTiers.High;
 
   /**
-   * Lowest down-payment scenario, in whole EUR.
+   * One down-payment tier — percent of list price + flat EUR.
+   *
+   * apimax: `dealer_public.nlt_anticipi_config` is a JSONB list of three
+   * `{"pct": <0..1>, "eur": <int>}` entries. The final EUR applied to a deal is
+   * `listino_imponibile * pct + eur` (see
+   * `apimax/app/services/nlt/calculator.py::calcola_anticipo_eur`).
+   *
+   * Partnermax API exposes `percent_of_list` as a 0–100 number (UI-friendly: write
+   * `12.5`, not `0.125`); the router persists `pct = percent_of_list / 100` to stay
+   * byte-compatible with the DealerMAX UI calculator.
    */
-  low_eur: number;
+  low: DownPaymentTiers.Low;
 
   /**
-   * Middle down-payment scenario.
+   * One down-payment tier — percent of list price + flat EUR.
+   *
+   * apimax: `dealer_public.nlt_anticipi_config` is a JSONB list of three
+   * `{"pct": <0..1>, "eur": <int>}` entries. The final EUR applied to a deal is
+   * `listino_imponibile * pct + eur` (see
+   * `apimax/app/services/nlt/calculator.py::calcola_anticipo_eur`).
+   *
+   * Partnermax API exposes `percent_of_list` as a 0–100 number (UI-friendly: write
+   * `12.5`, not `0.125`); the router persists `pct = percent_of_list / 100` to stay
+   * byte-compatible with the DealerMAX UI calculator.
    */
-  medium_eur: number;
+  medium: DownPaymentTiers.Medium;
 }
 
-export interface NltSettings {
+export namespace DownPaymentTiers {
   /**
-   * Markup applied on top of the network base canon, in percent. Hard cap at 10%.
+   * One down-payment tier — percent of list price + flat EUR.
+   *
+   * apimax: `dealer_public.nlt_anticipi_config` is a JSONB list of three
+   * `{"pct": <0..1>, "eur": <int>}` entries. The final EUR applied to a deal is
+   * `listino_imponibile * pct + eur` (see
+   * `apimax/app/services/nlt/calculator.py::calcola_anticipo_eur`).
+   *
+   * Partnermax API exposes `percent_of_list` as a 0–100 number (UI-friendly: write
+   * `12.5`, not `0.125`); the router persists `pct = percent_of_list / 100` to stay
+   * byte-compatible with the DealerMAX UI calculator.
    */
-  agency_markup_percent: number;
+  export interface High {
+    /**
+     * Flat EUR component added on top of the percentage (e.g. promo
+     * `0% + 500 EUR fissi`). Whole euros only.
+     */
+    fixed_eur: number;
+
+    /**
+     * Percentage of the IVA-excluded list price applied as down payment for this tier.
+     * Range 0–100. Typical defaults: 0 (low), 12.5 (medium), 25 (high).
+     */
+    percent_of_list: number;
+  }
 
   /**
-   * Only EUR supported in v1.
+   * One down-payment tier — percent of list price + flat EUR.
+   *
+   * apimax: `dealer_public.nlt_anticipi_config` is a JSONB list of three
+   * `{"pct": <0..1>, "eur": <int>}` entries. The final EUR applied to a deal is
+   * `listino_imponibile * pct + eur` (see
+   * `apimax/app/services/nlt/calculator.py::calcola_anticipo_eur`).
+   *
+   * Partnermax API exposes `percent_of_list` as a 0–100 number (UI-friendly: write
+   * `12.5`, not `0.125`); the router persists `pct = percent_of_list / 100` to stay
+   * byte-compatible with the DealerMAX UI calculator.
    */
-  currency: 'EUR';
+  export interface Low {
+    /**
+     * Flat EUR component added on top of the percentage (e.g. promo
+     * `0% + 500 EUR fissi`). Whole euros only.
+     */
+    fixed_eur: number;
+
+    /**
+     * Percentage of the IVA-excluded list price applied as down payment for this tier.
+     * Range 0–100. Typical defaults: 0 (low), 12.5 (medium), 25 (high).
+     */
+    percent_of_list: number;
+  }
+
+  /**
+   * One down-payment tier — percent of list price + flat EUR.
+   *
+   * apimax: `dealer_public.nlt_anticipi_config` is a JSONB list of three
+   * `{"pct": <0..1>, "eur": <int>}` entries. The final EUR applied to a deal is
+   * `listino_imponibile * pct + eur` (see
+   * `apimax/app/services/nlt/calculator.py::calcola_anticipo_eur`).
+   *
+   * Partnermax API exposes `percent_of_list` as a 0–100 number (UI-friendly: write
+   * `12.5`, not `0.125`); the router persists `pct = percent_of_list / 100` to stay
+   * byte-compatible with the DealerMAX UI calculator.
+   */
+  export interface Medium {
+    /**
+     * Flat EUR component added on top of the percentage (e.g. promo
+     * `0% + 500 EUR fissi`). Whole euros only.
+     */
+    fixed_eur: number;
+
+    /**
+     * Percentage of the IVA-excluded list price applied as down payment for this tier.
+     * Range 0–100. Typical defaults: 0 (low), 12.5 (medium), 25 (high).
+     */
+    percent_of_list: number;
+  }
+}
+
+/**
+ * Response model for GET / PATCH /v1/dealers/{id}/nlt-settings.
+ *
+ * Note: there is no `vat_treatment` field — VAT is a property of the offer
+ * (`nlt_offerte.solo_privati`), not of the dealer. The offer detail returns the
+ * VAT treatment per row instead.
+ */
+export interface NltSettings {
+  agency_markup_percent: number;
 
   dealer_id: string;
 
   /**
-   * Three down-payment scenarios shown to consumers, in strictly ascending order
-   * (low < medium < high).
+   * Three down-payment scenarios (basso / medio / alto).
+   *
+   * No strict-ascending validation: the final EUR amount depends on the offer's list
+   * price (`tier.percent_of_list / 100 * listino_imponibile + tier.fixed_eur`), so a
+   * tier that looks larger by % can produce a smaller EUR on cheap vehicles. Label
+   * semantics (low/medium/high) are advisory — apimax/DealerMAX UI treats the 3
+   * positions as opaque slots ordered by intent.
    */
   down_payment_tiers: DownPaymentTiers;
 
   effective_from: string;
 
-  /**
-   * private = display VAT-inclusive (×1.22). business = display VAT-exclusive.
-   */
-  vat_treatment: 'private' | 'business';
+  currency?: 'EUR';
+
+  image_mode?: 'branded' | 'scenario_locked' | 'scenario_seasonal';
+
+  image_scenario_locked?: 'mediterraneo' | 'cortina' | 'milano' | 'showroom' | 'building' | null;
 }
 
 export interface NltSettingUpdateParams {
@@ -120,15 +229,15 @@ export interface NltSettingUpdateParams {
   agency_markup_percent: number;
 
   /**
-   * Body param: Three down-payment scenarios shown to consumers, in strictly
-   * ascending order (low < medium < high).
+   * Body param: Three down-payment scenarios (basso / medio / alto).
+   *
+   * No strict-ascending validation: the final EUR amount depends on the offer's list
+   * price (`tier.percent_of_list / 100 * listino_imponibile + tier.fixed_eur`), so a
+   * tier that looks larger by % can produce a smaller EUR on cheap vehicles. Label
+   * semantics (low/medium/high) are advisory — apimax/DealerMAX UI treats the 3
+   * positions as opaque slots ordered by intent.
    */
   down_payment_tiers: DownPaymentTiers;
-
-  /**
-   * Body param
-   */
-  vat_treatment: 'private' | 'business';
 
   /**
    * Body param
@@ -136,9 +245,17 @@ export interface NltSettingUpdateParams {
   currency?: 'EUR';
 
   /**
-   * Header param: Stripe-style idempotency key. Replaying the same request with the
-   * same key within 24 hours returns the original response without re-executing.
-   * Strongly recommended on all POST, PATCH, and DELETE requests.
+   * Body param
+   */
+  image_mode?: 'branded' | 'scenario_locked' | 'scenario_seasonal';
+
+  /**
+   * Body param
+   */
+  image_scenario_locked?: 'mediterraneo' | 'cortina' | 'milano' | 'showroom' | 'building' | null;
+
+  /**
+   * Header param
    */
   'Idempotency-Key'?: string;
 }
