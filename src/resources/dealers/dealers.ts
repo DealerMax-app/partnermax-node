@@ -17,11 +17,13 @@ import {
   VehicleList,
   VehicleListParams,
   VehicleRetrieveParams,
+  VehicleSummariesCursorPage,
   VehicleSummary,
   VehicleUpdateParams,
   Vehicles,
 } from './vehicles/vehicles';
 import { APIPromise } from '../../core/api-promise';
+import { CursorPage, type CursorPageParams, PagePromise } from '../../core/pagination';
 import { buildHeaders } from '../../internal/headers';
 import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
@@ -35,22 +37,9 @@ export class Dealers extends APIResource {
   vehicles: VehiclesAPI.Vehicles = new VehiclesAPI.Vehicles(this._client);
 
   /**
-   * Provision a new dealer as child of the calling partner.
-   */
-  create(params: DealerCreateParams, options?: RequestOptions): APIPromise<DealerDetail> {
-    const { 'Idempotency-Key': idempotencyKey, ...body } = params;
-    return this._client.post('/v1/dealers', {
-      body,
-      ...options,
-      headers: buildHeaders([
-        { ...(idempotencyKey != null ? { 'Idempotency-Key': idempotencyKey } : undefined) },
-        options?.headers,
-      ]),
-    });
-  }
-
-  /**
    * Fetch a dealer's full detail. ACL-protected.
+   *
+   * @deprecated
    */
   retrieve(dealerID: string, options?: RequestOptions): APIPromise<DealerDetail> {
     return this._client.get(path`/v1/dealers/${dealerID}`, options);
@@ -58,6 +47,8 @@ export class Dealers extends APIResource {
 
   /**
    * Update or toggle status. Inactive dealers drop from AI surfaces within 5 min.
+   *
+   * @deprecated
    */
   update(dealerID: string, params: DealerUpdateParams, options?: RequestOptions): APIPromise<DealerDetail> {
     const { 'Idempotency-Key': idempotencyKey, ...body } = params;
@@ -73,16 +64,20 @@ export class Dealers extends APIResource {
 
   /**
    * List dealers owned by the calling partner. Cursor-paginated.
+   *
+   * @deprecated
    */
   list(
     query: DealerListParams | null | undefined = {},
     options?: RequestOptions,
-  ): APIPromise<DealerListResponse> {
-    return this._client.get('/v1/dealers', { query, ...options });
+  ): PagePromise<DealerSummariesCursorPage, DealerSummary> {
+    return this._client.getAPIList('/v1/dealers', CursorPage<DealerSummary>, { query, ...options });
   }
 
   /**
    * Soft-delete. Audit trail retained; reactivation requires DealerMAX support.
+   *
+   * @deprecated
    */
   delete(dealerID: string, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/v1/dealers/${dealerID}`, {
@@ -91,6 +86,8 @@ export class Dealers extends APIResource {
     });
   }
 }
+
+export type DealerSummariesCursorPage = CursorPage<DealerSummary>;
 
 /**
  * Full dealer payload used by single-resource and write endpoints.
@@ -176,79 +173,6 @@ export interface DealerSummary {
   last_active_at?: string | null;
 }
 
-/**
- * Response envelope for `GET /v1/dealers`.
- */
-export interface DealerListResponse {
-  data: Array<DealerSummary>;
-
-  has_more: boolean;
-
-  next_cursor?: string | null;
-}
-
-export interface DealerCreateParams {
-  /**
-   * Body param
-   */
-  address: string;
-
-  /**
-   * Body param
-   */
-  business_name: string;
-
-  /**
-   * Body param
-   */
-  city: string;
-
-  /**
-   * Body param
-   */
-  contact_email: string;
-
-  /**
-   * Body param
-   */
-  contact_phone: string;
-
-  /**
-   * Body param
-   */
-  postal_code: string;
-
-  /**
-   * Body param
-   */
-  primary_domain: string;
-
-  /**
-   * Body param
-   */
-  province_code: string;
-
-  /**
-   * Body param
-   */
-  vat_number: string;
-
-  /**
-   * Body param
-   */
-  activate?: boolean;
-
-  /**
-   * Body param
-   */
-  metadata?: { [key: string]: string };
-
-  /**
-   * Header param
-   */
-  'Idempotency-Key'?: string;
-}
-
 export interface DealerUpdateParams {
   /**
    * Body param
@@ -301,11 +225,7 @@ export interface DealerUpdateParams {
   'Idempotency-Key'?: string;
 }
 
-export interface DealerListParams {
-  cursor?: string | null;
-
-  limit?: number;
-
+export interface DealerListParams extends CursorPageParams {
   status?: 'active' | 'inactive' | 'all';
 }
 
@@ -316,8 +236,7 @@ export declare namespace Dealers {
   export {
     type DealerDetail as DealerDetail,
     type DealerSummary as DealerSummary,
-    type DealerListResponse as DealerListResponse,
-    type DealerCreateParams as DealerCreateParams,
+    type DealerSummariesCursorPage as DealerSummariesCursorPage,
     type DealerUpdateParams as DealerUpdateParams,
     type DealerListParams as DealerListParams,
   };
@@ -338,6 +257,7 @@ export declare namespace Dealers {
     type VehicleDetail as VehicleDetail,
     type VehicleList as VehicleList,
     type VehicleSummary as VehicleSummary,
+    type VehicleSummariesCursorPage as VehicleSummariesCursorPage,
     type VehicleCreateParams as VehicleCreateParams,
     type VehicleRetrieveParams as VehicleRetrieveParams,
     type VehicleUpdateParams as VehicleUpdateParams,

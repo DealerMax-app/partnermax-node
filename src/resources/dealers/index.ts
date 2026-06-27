@@ -4,10 +4,9 @@ export {
   Dealers,
   type DealerDetail,
   type DealerSummary,
-  type DealerListResponse,
-  type DealerCreateParams,
   type DealerUpdateParams,
   type DealerListParams,
+  type DealerSummariesCursorPage,
 } from './dealers';
 export { Nlt } from './nlt/index';
 export { NltSettings, type DownPaymentTiers, type NltSettingUpdateParams } from './nlt-settings';
@@ -25,4 +24,5 @@ export {
   type VehicleListParams,
   type VehicleDeleteParams,
   type VehicleBulkParams,
+  type VehicleSummariesCursorPage,
 } from './vehicles/index';

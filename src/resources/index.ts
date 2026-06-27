@@ -4,9 +4,8 @@ export {
   Dealers,
   type DealerDetail,
   type DealerSummary,
-  type DealerListResponse,
-  type DealerCreateParams,
   type DealerUpdateParams,
   type DealerListParams,
+  type DealerSummariesCursorPage,
 } from './dealers/dealers';
 export { Keys, type KeyListResponse, type KeyIssueResponse, type KeyIssueParams } from './keys';

@@ -27,19 +27,10 @@ const client = new Partnermax({
   environment: 'sandbox', // defaults to 'production'
 });
 
-const dealerDetail = await client.dealers.create({
-  address: 'xx',
-  business_name: 'Rossi Automobili S.R.L.',
-  city: 'xx',
-  contact_email: 'info@rossi-auto.it',
-  contact_phone: 'xxxxx',
-  postal_code: '20121',
-  primary_domain: 'rossi-auto.it',
-  province_code: 'MI',
-  vat_number: 'IT01234567890',
-});
+const page = await client.dealers.list({ limit: 10, status: 'active' });
+const dealerSummary = page.data[0];
 
-console.log(dealerDetail.dealer_id);
+console.log(dealerSummary.dealer_id);
 ```
 
 ### Request & Response types
@@ -55,10 +46,54 @@ const client = new Partnermax({
   environment: 'sandbox', // defaults to 'production'
 });
 
-const dealers: Partnermax.DealerListResponse = await client.dealers.list();
+const [dealerSummary]: [Partnermax.DealerSummary] = await client.dealers.list();
 ```
 
 Documentation for each method, request param, and response field are available in docstrings and will appear on hover in most modern editors.
+
+## File uploads
+
+Request parameters that correspond to file uploads can be passed in many different forms:
+
+- `File` (or an object with the same structure)
+- a `fetch` `Response` (or an object with the same structure)
+- an `fs.ReadStream`
+- the return value of our `toFile` helper
+
+```ts
+import fs from 'fs';
+import Partnermax, { toFile } from 'partnermax';
+
+const client = new Partnermax();
+
+// If you have access to Node `fs` we recommend using `fs.createReadStream()`:
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: fs.createReadStream('/path/to/file'),
+});
+
+// Or if you have the web `File` API you can pass a `File` instance:
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: new File(['my bytes'], 'file'),
+});
+
+// You can also pass a `fetch` `Response`:
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: await fetch('https://somesite/file'),
+});
+
+// Finally, if none of the above are convenient, you can use our `toFile` helper:
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: await toFile(Buffer.from('my bytes'), 'file'),
+});
+await client.dealers.vehicles.images.create('vehicle_id', {
+  dealer_id: 'dealer_id',
+  file: await toFile(new Uint8Array([0, 1, 2]), 'file'),
+});
+```
 
 ## Handling errors
 
@@ -68,7 +103,7 @@ a subclass of `APIError` will be thrown:
 
 <!-- prettier-ignore -->
 ```ts
-const dealers = await client.dealers.list().catch(async (err) => {
+const page = await client.dealers.list().catch(async (err) => {
   if (err instanceof Partnermax.APIError) {
     console.log(err.status); // 400
     console.log(err.name); // BadRequestError
@@ -134,6 +169,37 @@ On timeout, an `APIConnectionTimeoutError` is thrown.
 
 Note that requests which time out will be [retried twice by default](#retries).
 
+## Auto-pagination
+
+List methods in the Partnermax API are paginated.
+You can use the `for await … of` syntax to iterate through items across all pages:
+
+```ts
+async function fetchAllDealerSummaries(params) {
+  const allDealerSummaries = [];
+  // Automatically fetches more pages as needed.
+  for await (const dealerSummary of client.dealers.list({ limit: 10, status: 'active' })) {
+    allDealerSummaries.push(dealerSummary);
+  }
+  return allDealerSummaries;
+}
+```
+
+Alternatively, you can request a single page at a time:
+
+```ts
+let page = await client.dealers.list({ limit: 10, status: 'active' });
+for (const dealerSummary of page.data) {
+  console.log(dealerSummary);
+}
+
+// Convenience methods are provided for manually paginating:
+while (page.hasNextPage()) {
+  page = await page.getNextPage();
+  // ...
+}
+```
+
 ## Advanced Usage
 
 ### Accessing raw Response data (e.g., headers)
@@ -152,9 +218,11 @@ const response = await client.dealers.list().asResponse();
 console.log(response.headers.get('X-My-Header'));
 console.log(response.statusText); // access the underlying Response object
 
-const { data: dealers, response: raw } = await client.dealers.list().withResponse();
+const { data: page, response: raw } = await client.dealers.list().withResponse();
 console.log(raw.headers.get('X-My-Header'));
-console.log(dealers.data);
+for await (const dealerSummary of page) {
+  console.log(dealerSummary.dealer_id);
+}
 ```
 
 ### Logging
@@ -234,7 +302,7 @@ parameter. This library doesn't validate at runtime that the request matches the
 send will be sent as-is.
 
 ```ts
-client.dealers.create({
+client.dealers.list({
   // ...
   // @ts-expect-error baz is not yet public
   baz: 'undocumented option',
