@@ -2,6 +2,7 @@
 
 import { APIResource } from '../../../core/resource';
 import { APIPromise } from '../../../core/api-promise';
+import { type Uploadable } from '../../../core/uploads';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 import { multipartFormRequestOptions } from '../../../internal/uploads';
@@ -38,8 +39,9 @@ export class Images extends APIResource {
    * List every photo attached to a vehicle, ordered by `position`.
    *
    * No pagination — a vehicle is capped at 20 photos so the full list always fits in
-   * a single response. `position=1` is the cover; use `DELETE` and re-`POST` to
-   * re-order.
+   * a single response. `position=1` is the cover. There is no single-image
+   * retrieve/update route in v1: retrieve through this list and replace/re-order by
+   * deleting and re-posting the affected images.
    */
   list(vehicleID: string, params: ImageListParams, options?: RequestOptions): APIPromise<VehicleImageList> {
     const { dealer_id } = params;
@@ -129,7 +131,7 @@ export interface ImageCreateParams {
    * Body param: The photo file. JPEG, PNG, or WebP, up to 15 MB. WebP is converted
    * to PNG server-side.
    */
-  file: string;
+  file: Uploadable;
 }
 
 export interface ImageListParams {

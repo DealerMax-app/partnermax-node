@@ -3,9 +3,9 @@
 import { APIResource } from '../../../core/resource';
 import * as OffersAPI from './offers';
 import {
+  NltOfferSummariesCursorPage,
   NltOfferSummary,
   OfferListParams,
-  OfferListResponse,
   OfferRetrieveParams,
   OfferRetrieveResponse,
   Offers,
@@ -22,7 +22,7 @@ export declare namespace Nlt {
     Offers as Offers,
     type NltOfferSummary as NltOfferSummary,
     type OfferRetrieveResponse as OfferRetrieveResponse,
-    type OfferListResponse as OfferListResponse,
+    type NltOfferSummariesCursorPage as NltOfferSummariesCursorPage,
     type OfferRetrieveParams as OfferRetrieveParams,
     type OfferListParams as OfferListParams,
   };

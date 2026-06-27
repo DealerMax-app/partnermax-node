@@ -14,15 +14,16 @@ import * as Opts from './internal/request-options';
 import { stringifyQuery } from './internal/utils/query';
 import { VERSION } from './version';
 import * as Errors from './core/error';
+import * as Pagination from './core/pagination';
+import { AbstractPage, type CursorPageParams, CursorPageResponse } from './core/pagination';
 import * as Uploads from './core/uploads';
 import * as API from './resources/index';
 import { APIPromise } from './core/api-promise';
 import { KeyIssueParams, KeyIssueResponse, KeyListResponse, Keys } from './resources/keys';
 import {
-  DealerCreateParams,
   DealerDetail,
   DealerListParams,
-  DealerListResponse,
+  DealerSummariesCursorPage,
   DealerSummary,
   DealerUpdateParams,
   Dealers,
@@ -551,6 +552,30 @@ export class Partnermax {
     return { response, options, controller, requestLogID, retryOfRequestLogID, startTime };
   }
 
+  getAPIList<Item, PageClass extends Pagination.AbstractPage<Item> = Pagination.AbstractPage<Item>>(
+    path: string,
+    Page: new (...args: any[]) => PageClass,
+    opts?: PromiseOrValue<RequestOptions>,
+  ): Pagination.PagePromise<PageClass, Item> {
+    return this.requestAPIList(
+      Page,
+      opts && 'then' in opts ?
+        opts.then((opts) => ({ method: 'get', path, ...opts }))
+      : { method: 'get', path, ...opts },
+    );
+  }
+
+  requestAPIList<
+    Item = unknown,
+    PageClass extends Pagination.AbstractPage<Item> = Pagination.AbstractPage<Item>,
+  >(
+    Page: new (...args: ConstructorParameters<typeof Pagination.AbstractPage>) => PageClass,
+    options: PromiseOrValue<FinalRequestOptions>,
+  ): Pagination.PagePromise<PageClass, Item> {
+    const request = this.makeRequest(options, null, undefined);
+    return new Pagination.PagePromise<PageClass, Item>(this as any as Partnermax, request, Page);
+  }
+
   async fetchWithTimeout(
     url: RequestInfo,
     init: RequestInit | undefined,
@@ -807,7 +832,7 @@ export class Partnermax {
   static toFile = Uploads.toFile;
 
   /**
-   * API key lifecycle management — issue, list, revoke. The partner authenticates every request with `X-Api-Key` (preferred) or `Authorization: Bearer <key>`; the server identifies the partner from the key and scopes all reads/writes to dealers owned by that partner.
+   * API key lifecycle management. PartnerMAX v1 allows one active API key per partner/environment; partners authenticate every request with `X-Api-Key` (preferred) or `Authorization: Bearer <key>`, and replacement is handled through DealerMAX support.
    */
   keys: API.Keys = new API.Keys(this);
   /**
@@ -822,6 +847,9 @@ Partnermax.Dealers = Dealers;
 export declare namespace Partnermax {
   export type RequestOptions = Opts.RequestOptions;
 
+  export import CursorPage = Pagination.CursorPage;
+  export { type CursorPageParams as CursorPageParams, type CursorPageResponse as CursorPageResponse };
+
   export {
     Keys as Keys,
     type KeyListResponse as KeyListResponse,
@@ -833,8 +861,7 @@ export declare namespace Partnermax {
     Dealers as Dealers,
     type DealerDetail as DealerDetail,
     type DealerSummary as DealerSummary,
-    type DealerListResponse as DealerListResponse,
-    type DealerCreateParams as DealerCreateParams,
+    type DealerSummariesCursorPage as DealerSummariesCursorPage,
     type DealerUpdateParams as DealerUpdateParams,
     type DealerListParams as DealerListParams,
   };

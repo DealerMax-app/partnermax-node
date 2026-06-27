@@ -22,4 +22,5 @@ export {
   type VehicleListParams,
   type VehicleDeleteParams,
   type VehicleBulkParams,
+  type VehicleSummariesCursorPage,
 } from './vehicles';
