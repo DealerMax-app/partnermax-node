@@ -11,6 +11,7 @@ import {
   VehicleImageList,
 } from './images';
 import { APIPromise } from '../../../core/api-promise';
+import { CursorPage, type CursorPageParams, PagePromise } from '../../../core/pagination';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 import { path } from '../../../internal/utils/path';
@@ -24,11 +25,10 @@ export class Vehicles extends APIResource {
   /**
    * Provision a new used vehicle in a dealer's stock.
    *
-   * Writes are atomic across `azlease_usatoin` and `azlease_usatoauto` using a
-   * `SAVEPOINT` so a UNIQUE plate violation rolls back cleanly. On success the
-   * AI-content worker (:mod:`azurenet-engine.app.jobs.usato_ai_content_worker`)
-   * picks up the new row within 60 seconds and generates the SEO body + pgvector
-   * embedding — at which point the vehicle becomes discoverable on the cross-network
+   * The write is atomic: a plate conflict or catalogue-code error leaves no partial
+   * stock record behind. On success the asynchronous AI-content worker picks up the
+   * new vehicle within 60 seconds and generates the SEO body plus semantic
+   * embedding; at that point the vehicle becomes discoverable on the cross-network
    * MCP / Custom GPT / NLWeb surfaces. The response returns immediately (no
    * synchronous wait on the worker).
    */
@@ -59,9 +59,9 @@ export class Vehicles extends APIResource {
   /**
    * Partial update of a vehicle.
    *
-   * Splits the inbound body across the two physical tables (`azlease_usatoauto` and
-   * `azlease_usatoin`) and emits at most one UPDATE per table inside a single
-   * transaction. Fields not present in the body are not touched.
+   * Applies the transmitted fields inside a single transaction. Fields not present
+   * in the body are not touched; explicit `null` clears only fields that are
+   * nullable in the public contract.
    */
   update(
     vehicleID: string,
@@ -91,25 +91,25 @@ export class Vehicles extends APIResource {
     dealerID: string,
     query: VehicleListParams | null | undefined = {},
     options?: RequestOptions,
-  ): APIPromise<VehicleList> {
-    return this._client.get(path`/v1/dealers/${dealerID}/vehicles`, { query, ...options });
+  ): PagePromise<VehicleSummariesCursorPage, VehicleSummary> {
+    return this._client.getAPIList(path`/v1/dealers/${dealerID}/vehicles`, CursorPage<VehicleSummary>, {
+      query,
+      ...options,
+    });
   }
 
   /**
    * Withdraw a vehicle from sale without deleting the row.
    *
-   * Sets `azlease_usatoin.visibile = FALSE` and stamps `venduto_il = now()`. The
-   * plate becomes reusable on the network the moment this returns (the
-   * active-uniqueness check excludes rows where `visibile = FALSE` OR
-   * `venduto_il IS NOT NULL`).
+   * Marks the vehicle as no longer for sale. The plate becomes reusable on the
+   * network the moment this returns.
    *
    * Soft-delete is the canonical "remove this vehicle from sale" surface. The
    * AI-citation consumers (MCP `_tool_search_vehicles`, Custom GPT
-   * `search_vehicles_network`, NLWeb `/ask`) each filter their own queries on
-   * `i.visibile = TRUE AND i.venduto_il IS NULL` — the shared `v_apimax_listing`
-   * view itself does not impose that filter, every consumer adds it. The result on
-   * the partner side is the same: a soft-deleted vehicle disappears from every AI
-   * surface within the next index cycle.
+   * `search_vehicles_network`, NLWeb `/ask`) each filter their own
+   * public-availability state. The result on the partner side is the same: a
+   * soft-deleted vehicle disappears from every AI surface within the next index
+   * cycle.
    *
    * Returns `409 vehicle_already_deleted` if the row is already soft- deleted — same
    * idempotency pattern as the dealers DELETE endpoint.
@@ -162,6 +162,8 @@ export class Vehicles extends APIResource {
     });
   }
 }
+
+export type VehicleSummariesCursorPage = CursorPage<VehicleSummary>;
 
 /**
  * AI-generated editorial content for a single vehicle.
@@ -272,20 +274,16 @@ export interface BulkRowOutcome {
    *
    * - **Partner-supplied** — what the partner posted (`plate`, `description`,
    *   `sale_price_eur`, etc.).
-   * - **Catalogue-derived** — `technical_details` is the flat `mnet_dettagli_usato`
-   *   dict (Italian column keys: `cilindrata`, `kw`, `hp`, `lunghezza`,
-   *   `consumo_medio`, `emissioni_co2`, etc.). Same shape conventions as
-   *   `NltOfferDetail` per `feedback_partnermax_field_naming_us_english`.
+   * - **Catalogue-derived** — `technical_details` is a flat dictionary of
+   *   Motornet-backed technical attributes using Italian domain labels such as
+   *   `cilindrata`, `kw`, `hp`, `lunghezza`, `consumo_medio`, and `emissioni_co2`.
    * - **AI-derived** — `ai_content` carries the editorial output the cross-network
    *   consumers display (descriptions, highlights, FAQ, SEO meta). `null` until the
    *   worker has processed the vehicle.
    *
-   * Fields the partner does NOT see through this surface (because they are
-   * dealer-internal margin/operations data the partner does not own):
-   * `cost_price_eur`, `inspection_expiry_date`, `road_tax_expiry_date`,
-   * `previous_owner_count`, `previous_ownership_transfer_date`, `last_service_*`.
-   * These exist in the underlying DB tables for the DealerMAX dashboard but are
-   * intentionally not exposed via the SDK.
+   * Dealer-internal margin and operations data remains outside this SDK surface;
+   * partners receive only the inventory, commercial, catalogue, media, and
+   * AI-derived fields needed to publish the vehicle.
    */
   vehicle?: VehicleDetail | null;
 }
@@ -298,20 +296,16 @@ export interface BulkRowOutcome {
  *
  * - **Partner-supplied** — what the partner posted (`plate`, `description`,
  *   `sale_price_eur`, etc.).
- * - **Catalogue-derived** — `technical_details` is the flat `mnet_dettagli_usato`
- *   dict (Italian column keys: `cilindrata`, `kw`, `hp`, `lunghezza`,
- *   `consumo_medio`, `emissioni_co2`, etc.). Same shape conventions as
- *   `NltOfferDetail` per `feedback_partnermax_field_naming_us_english`.
+ * - **Catalogue-derived** — `technical_details` is a flat dictionary of
+ *   Motornet-backed technical attributes using Italian domain labels such as
+ *   `cilindrata`, `kw`, `hp`, `lunghezza`, `consumo_medio`, and `emissioni_co2`.
  * - **AI-derived** — `ai_content` carries the editorial output the cross-network
  *   consumers display (descriptions, highlights, FAQ, SEO meta). `null` until the
  *   worker has processed the vehicle.
  *
- * Fields the partner does NOT see through this surface (because they are
- * dealer-internal margin/operations data the partner does not own):
- * `cost_price_eur`, `inspection_expiry_date`, `road_tax_expiry_date`,
- * `previous_owner_count`, `previous_ownership_transfer_date`, `last_service_*`.
- * These exist in the underlying DB tables for the DealerMAX dashboard but are
- * intentionally not exposed via the SDK.
+ * Dealer-internal margin and operations data remains outside this SDK surface;
+ * partners receive only the inventory, commercial, catalogue, media, and
+ * AI-derived fields needed to publish the vehicle.
  */
 export interface VehicleDetail {
   certified_km: number;
@@ -376,9 +370,9 @@ export interface VehicleDetail {
   registration_month?: number | null;
 
   /**
-   * Flat dict of every non-null `mnet_dettagli_usato` column for this
-   * `motornet_code`. Keys stay in Italian because they are raw SQL column names;
-   * native units preserved (mm, kg, kW, CV, g/km, etc.).
+   * Flat dictionary of Motornet-backed technical attributes for this
+   * `motornet_code`. Keys stay in Italian domain vocabulary; native units are
+   * preserved (mm, kg, kW, CV, g/km, etc.).
    */
   technical_details?: { [key: string]: unknown };
 
@@ -402,8 +396,9 @@ export interface VehicleList {
  * Compact vehicle payload for list endpoints.
  *
  * Catalogue fields (`brand`, `model`, `trim`, `fuel_type`) are derived from
- * `mnet_dettagli` at read time. Italian raw labels are surfaced verbatim — same
- * convention as NLT (`apimax`-aligned).
+ * DealerMAX's licensed Motornet-backed catalogue at read time. Italian raw labels
+ * are surfaced verbatim so partner clients see the same vocabulary as
+ * consumer-facing DealerMAX surfaces.
  */
 export interface VehicleSummary {
   certified_km: number;
@@ -445,16 +440,17 @@ export interface VehicleCreateParams {
 
   /**
    * Body param: Motornet UNI code identifying the exact vehicle configuration. Must
-   * exist in `mnet_dettagli_usato` at submission time; otherwise the call returns
-   * 422 `motornet_code_not_in_catalogue`. The partner is expected to source this
-   * from its own DMS; partnermax does not expose a plate→code lookup.
+   * exist in the used-vehicle catalogue at submission time; otherwise the call
+   * returns 422 `motornet_code_not_in_catalogue`. Partners may send a code from
+   * their own Motornet agreement or use the paid control-plane targa/VIN resolver
+   * before creating the vehicle.
    */
   motornet_code: string;
 
   /**
    * Body param: Italian licence plate. Uppercased server-side. UNIQUE across the
-   * network for active vehicles (`visibile=true AND venduto_il IS NULL`); reusable
-   * once the previous holder sells/hides the row.
+   * network for active vehicles; reusable once the previous holder withdraws the
+   * vehicle from sale.
    */
   plate: string;
 
@@ -496,20 +492,18 @@ export interface VehicleCreateParams {
   extended_warranty_months?: number | null;
 
   /**
-   * Body param: Maps to `azlease_usatoauto.is_vendita_enabled`. When false the row
-   * is in stock but not offered for sale.
+   * Body param: When false the vehicle remains in stock but is not offered for sale.
    */
   is_for_sale?: boolean;
 
   /**
    * Body param: Soft-publish flag. When false the row exists in stock but is
-   * excluded from consumer-facing AI surfaces. Maps to `azlease_usatoin.visibile`.
+   * excluded from consumer-facing AI surfaces.
    */
   is_visible?: boolean;
 
   /**
-   * Body param: Free-form short notes; surfaced as
-   * `mnet_dettagli.precisazioni`-style.
+   * Body param: Free-form short notes for partner-facing vehicle detail views.
    */
   notes?: string | null;
 
@@ -632,9 +626,7 @@ export interface VehicleUpdateParams {
   'Idempotency-Key'?: string;
 }
 
-export interface VehicleListParams {
-  cursor?: string | null;
-
+export interface VehicleListParams extends CursorPageParams {
   /**
    * If true, soft-deleted rows (`venduto_il` populated) are also returned. Default
    * false — listings hide soft-deleted vehicles.
@@ -650,8 +642,6 @@ export interface VehicleListParams {
    * Filter on the visibility flag.
    */
   is_visible?: boolean | null;
-
-  limit?: number;
 }
 
 export interface VehicleDeleteParams {
@@ -678,9 +668,8 @@ export namespace VehicleBulkParams {
    *
    * The partner sends a small, vehicle-specific payload. All technical specs (brand,
    * model, trim, fuel type, displacement, dimensions, CO2, etc.) are derived
-   * server-side from `mnet_dettagli` via the `motornet_code` join — the partner
-   * never types them. This is the same canonical pattern used by NLT offers and
-   * matches the platform rule `feedback_motornet_authoritative`.
+   * server-side from DealerMAX's licensed Motornet-backed catalogue — the partner
+   * never types them.
    *
    * Fields immutable after creation: `motornet_code`, `plate`, `vin`. Other fields
    * may be updated via PATCH.
@@ -692,17 +681,18 @@ export namespace VehicleBulkParams {
     certified_km: number;
 
     /**
-     * Motornet UNI code identifying the exact vehicle configuration. Must exist in
-     * `mnet_dettagli_usato` at submission time; otherwise the call returns 422
-     * `motornet_code_not_in_catalogue`. The partner is expected to source this from
-     * its own DMS; partnermax does not expose a plate→code lookup.
+     * Motornet UNI code identifying the exact vehicle configuration. Must exist in the
+     * used-vehicle catalogue at submission time; otherwise the call returns 422
+     * `motornet_code_not_in_catalogue`. Partners may send a code from their own
+     * Motornet agreement or use the paid control-plane targa/VIN resolver before
+     * creating the vehicle.
      */
     motornet_code: string;
 
     /**
      * Italian licence plate. Uppercased server-side. UNIQUE across the network for
-     * active vehicles (`visibile=true AND venduto_il IS NULL`); reusable once the
-     * previous holder sells/hides the row.
+     * active vehicles; reusable once the previous holder withdraws the vehicle from
+     * sale.
      */
     plate: string;
 
@@ -731,19 +721,18 @@ export namespace VehicleBulkParams {
     extended_warranty_months?: number | null;
 
     /**
-     * Maps to `azlease_usatoauto.is_vendita_enabled`. When false the row is in stock
-     * but not offered for sale.
+     * When false the vehicle remains in stock but is not offered for sale.
      */
     is_for_sale?: boolean;
 
     /**
      * Soft-publish flag. When false the row exists in stock but is excluded from
-     * consumer-facing AI surfaces. Maps to `azlease_usatoin.visibile`.
+     * consumer-facing AI surfaces.
      */
     is_visible?: boolean;
 
     /**
-     * Free-form short notes; surfaced as `mnet_dettagli.precisazioni`-style.
+     * Free-form short notes for partner-facing vehicle detail views.
      */
     notes?: string | null;
 
@@ -777,6 +766,7 @@ export declare namespace Vehicles {
     type VehicleDetail as VehicleDetail,
     type VehicleList as VehicleList,
     type VehicleSummary as VehicleSummary,
+    type VehicleSummariesCursorPage as VehicleSummariesCursorPage,
     type VehicleCreateParams as VehicleCreateParams,
     type VehicleRetrieveParams as VehicleRetrieveParams,
     type VehicleUpdateParams as VehicleUpdateParams,

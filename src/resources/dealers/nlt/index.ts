@@ -5,7 +5,7 @@ export {
   Offers,
   type NltOfferSummary,
   type OfferRetrieveResponse,
-  type OfferListResponse,
   type OfferRetrieveParams,
   type OfferListParams,
+  type NltOfferSummariesCursorPage,
 } from './offers';

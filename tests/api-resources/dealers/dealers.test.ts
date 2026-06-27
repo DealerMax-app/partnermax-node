@@ -9,46 +9,6 @@ const client = new Partnermax({
 
 describe('resource dealers', () => {
   // Mock server tests are disabled
-  test.skip('create: only required params', async () => {
-    const responsePromise = client.dealers.create({
-      address: 'xx',
-      business_name: 'xx',
-      city: 'xx',
-      contact_email: 'dev@stainless.com',
-      contact_phone: 'xxxxx',
-      postal_code: '21029',
-      primary_domain: '29-0.mi-57.16u-2d91-aha.o-l7c19m0.z.9zhin-8ja2-7.447----86.6.61--5-6.2.3-i2al.r.name',
-      province_code: 'SE',
-      vat_number: 'IT21029798095',
-    });
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
-  test.skip('create: required and optional params', async () => {
-    const response = await client.dealers.create({
-      address: 'xx',
-      business_name: 'xx',
-      city: 'xx',
-      contact_email: 'dev@stainless.com',
-      contact_phone: 'xxxxx',
-      postal_code: '21029',
-      primary_domain: '29-0.mi-57.16u-2d91-aha.o-l7c19m0.z.9zhin-8ja2-7.447----86.6.61--5-6.2.3-i2al.r.name',
-      province_code: 'SE',
-      vat_number: 'IT21029798095',
-      activate: true,
-      metadata: { foo: 'string' },
-      'Idempotency-Key': 'Idempotency-Key',
-    });
-  });
-
-  // Mock server tests are disabled
   test.skip('retrieve', async () => {
     const responsePromise = client.dealers.retrieve('dealer_id');
     const rawResponse = await responsePromise.asResponse();

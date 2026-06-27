@@ -17,14 +17,12 @@ Types:
 
 - <code><a href="./src/resources/dealers/dealers.ts">DealerDetail</a></code>
 - <code><a href="./src/resources/dealers/dealers.ts">DealerSummary</a></code>
-- <code><a href="./src/resources/dealers/dealers.ts">DealerListResponse</a></code>
 
 Methods:
 
-- <code title="post /v1/dealers">client.dealers.<a href="./src/resources/dealers/dealers.ts">create</a>({ ...params }) -> DealerDetail</code>
 - <code title="get /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">retrieve</a>(dealerID) -> DealerDetail</code>
 - <code title="patch /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">update</a>(dealerID, { ...params }) -> DealerDetail</code>
-- <code title="get /v1/dealers">client.dealers.<a href="./src/resources/dealers/dealers.ts">list</a>({ ...params }) -> DealerListResponse</code>
+- <code title="get /v1/dealers">client.dealers.<a href="./src/resources/dealers/dealers.ts">list</a>({ ...params }) -> DealerSummariesCursorPage</code>
 - <code title="delete /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">delete</a>(dealerID) -> void</code>
 
 ## NltSettings
@@ -47,12 +45,11 @@ Types:
 
 - <code><a href="./src/resources/dealers/nlt/offers.ts">NltOfferSummary</a></code>
 - <code><a href="./src/resources/dealers/nlt/offers.ts">OfferRetrieveResponse</a></code>
-- <code><a href="./src/resources/dealers/nlt/offers.ts">OfferListResponse</a></code>
 
 Methods:
 
 - <code title="get /v1/dealers/{dealer_id}/nlt/offers/{offer_id}">client.dealers.nlt.offers.<a href="./src/resources/dealers/nlt/offers.ts">retrieve</a>(offerID, { ...params }) -> OfferRetrieveResponse</code>
-- <code title="get /v1/dealers/{dealer_id}/nlt/offers">client.dealers.nlt.offers.<a href="./src/resources/dealers/nlt/offers.ts">list</a>(dealerID, { ...params }) -> OfferListResponse</code>
+- <code title="get /v1/dealers/{dealer_id}/nlt/offers">client.dealers.nlt.offers.<a href="./src/resources/dealers/nlt/offers.ts">list</a>(dealerID, { ...params }) -> NltOfferSummariesCursorPage</code>
 
 ## Vehicles
 
@@ -70,7 +67,7 @@ Methods:
 - <code title="post /v1/dealers/{dealer_id}/vehicles">client.dealers.vehicles.<a href="./src/resources/dealers/vehicles/vehicles.ts">create</a>(dealerID, { ...params }) -> VehicleDetail</code>
 - <code title="get /v1/dealers/{dealer_id}/vehicles/{vehicle_id}">client.dealers.vehicles.<a href="./src/resources/dealers/vehicles/vehicles.ts">retrieve</a>(vehicleID, { ...params }) -> VehicleDetail</code>
 - <code title="patch /v1/dealers/{dealer_id}/vehicles/{vehicle_id}">client.dealers.vehicles.<a href="./src/resources/dealers/vehicles/vehicles.ts">update</a>(vehicleID, { ...params }) -> VehicleDetail</code>
-- <code title="get /v1/dealers/{dealer_id}/vehicles">client.dealers.vehicles.<a href="./src/resources/dealers/vehicles/vehicles.ts">list</a>(dealerID, { ...params }) -> VehicleList</code>
+- <code title="get /v1/dealers/{dealer_id}/vehicles">client.dealers.vehicles.<a href="./src/resources/dealers/vehicles/vehicles.ts">list</a>(dealerID, { ...params }) -> VehicleSummariesCursorPage</code>
 - <code title="delete /v1/dealers/{dealer_id}/vehicles/{vehicle_id}">client.dealers.vehicles.<a href="./src/resources/dealers/vehicles/vehicles.ts">delete</a>(vehicleID, { ...params }) -> void</code>
 - <code title="post /v1/dealers/{dealer_id}/vehicles/bulk">client.dealers.vehicles.<a href="./src/resources/dealers/vehicles/vehicles.ts">bulk</a>(dealerID, { ...params }) -> BulkCreateVehiclesResponse</code>
 
