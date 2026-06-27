@@ -38,8 +38,6 @@ export class Dealers extends APIResource {
 
   /**
    * Fetch a dealer's full detail. ACL-protected.
-   *
-   * @deprecated
    */
   retrieve(dealerID: string, options?: RequestOptions): APIPromise<DealerDetail> {
     return this._client.get(path`/v1/dealers/${dealerID}`, options);
@@ -47,8 +45,6 @@ export class Dealers extends APIResource {
 
   /**
    * Update or toggle status. Inactive dealers drop from AI surfaces within 5 min.
-   *
-   * @deprecated
    */
   update(dealerID: string, params: DealerUpdateParams, options?: RequestOptions): APIPromise<DealerDetail> {
     const { 'Idempotency-Key': idempotencyKey, ...body } = params;
@@ -64,8 +60,6 @@ export class Dealers extends APIResource {
 
   /**
    * List dealers owned by the calling partner. Cursor-paginated.
-   *
-   * @deprecated
    */
   list(
     query: DealerListParams | null | undefined = {},
@@ -76,8 +70,6 @@ export class Dealers extends APIResource {
 
   /**
    * Soft-delete. Audit trail retained; reactivation requires DealerMAX support.
-   *
-   * @deprecated
    */
   delete(dealerID: string, options?: RequestOptions): APIPromise<void> {
     return this._client.delete(path`/v1/dealers/${dealerID}`, {

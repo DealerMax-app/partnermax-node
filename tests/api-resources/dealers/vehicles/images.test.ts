@@ -1,6 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import Partnermax, { toFile } from 'partnermax';
+import Partnermax from 'partnermax';
 
 const client = new Partnermax({
   apiKey: 'My API Key',
@@ -12,7 +12,7 @@ describe('resource images', () => {
   test.skip('create: only required params', async () => {
     const responsePromise = client.dealers.vehicles.images.create('vehicle_id', {
       dealer_id: 'dealer_id',
-      file: await toFile(Buffer.from('Example data'), 'README.md'),
+      file: 'file',
     });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -27,7 +27,7 @@ describe('resource images', () => {
   test.skip('create: required and optional params', async () => {
     const response = await client.dealers.vehicles.images.create('vehicle_id', {
       dealer_id: 'dealer_id',
-      file: await toFile(Buffer.from('Example data'), 'README.md'),
+      file: 'file',
     });
   });
 
