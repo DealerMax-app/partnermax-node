@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 (2026-06-28)
+
+Full Changelog: [v0.3.0...v0.4.0](https://github.com/DealerMax-app/partnermax-node/compare/v0.3.0...v0.4.0)
+
+### Features
+
+* **api:** api update ([80aa3ba](https://github.com/DealerMax-app/partnermax-node/commit/80aa3bad3efd92e4d14c87fabb8ccd5c6845021c))
+
 ## 0.3.0 (2026-06-28)
 
 Full Changelog: [v0.2.2...v0.3.0](https://github.com/DealerMax-app/partnermax-node/compare/v0.2.2...v0.3.0)
