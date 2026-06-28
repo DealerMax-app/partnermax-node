@@ -37,6 +37,23 @@ export class Dealers extends APIResource {
   vehicles: VehiclesAPI.Vehicles = new VehiclesAPI.Vehicles(this._client);
 
   /**
+   * Create a partner-owned opaque dealer reference. SDK users call
+   * `client.dealers.create(...)`; the generated client sends this request to the
+   * core-owned `/api/partner/dealers` route.
+   */
+  create(params: DealerCreateParams, options?: RequestOptions): APIPromise<PartnerDealerResponse> {
+    const { 'Idempotency-Key': idempotencyKey, ...body } = params;
+    return this._client.post('/api/partner/dealers', {
+      body,
+      ...options,
+      headers: buildHeaders([
+        { ...(idempotencyKey != null ? { 'Idempotency-Key': idempotencyKey } : undefined) },
+        options?.headers,
+      ]),
+    });
+  }
+
+  /**
    * Fetch a dealer's full detail. ACL-protected.
    */
   retrieve(dealerID: string, options?: RequestOptions): APIPromise<DealerDetail> {
@@ -165,6 +182,57 @@ export interface DealerSummary {
   last_active_at?: string | null;
 }
 
+/**
+ * Partner dealer registry response. Use dealer_id as the path parameter for
+ * vehicle and NLT SDK calls.
+ */
+export interface PartnerDealerResponse {
+  created_at: string;
+
+  /**
+   * The partner-owned external dealer id.
+   */
+  dealer_id: string;
+
+  partner_id: string;
+
+  public_surfaces_enabled: boolean;
+
+  status: 'active' | 'suspended' | 'revoked';
+
+  updated_at: string;
+
+  /**
+   * True only when this request inserted the registry row.
+   */
+  created?: boolean;
+}
+
+export interface DealerCreateParams {
+  /**
+   * Body param: Partner-owned opaque dealer id. This becomes the dealer_id used by
+   * vehicle and NLT SDK calls.
+   */
+  external_dealer_id: string;
+
+  /**
+   * Body param: When true, the dealer can immediately receive vehicle/NLT
+   * operations. When false, create the registry row but keep it suspended until
+   * activated.
+   */
+  activate?: boolean;
+
+  /**
+   * Body param: Optional scalar partner-side correlation metadata.
+   */
+  metadata?: { [key: string]: string | number | boolean | null };
+
+  /**
+   * Header param: Recommended stable key per logical dealer provisioning operation.
+   */
+  'Idempotency-Key'?: string;
+}
+
 export interface DealerUpdateParams {
   /**
    * Body param
@@ -228,7 +296,9 @@ export declare namespace Dealers {
   export {
     type DealerDetail as DealerDetail,
     type DealerSummary as DealerSummary,
+    type PartnerDealerResponse as PartnerDealerResponse,
     type DealerSummariesCursorPage as DealerSummariesCursorPage,
+    type DealerCreateParams as DealerCreateParams,
     type DealerUpdateParams as DealerUpdateParams,
     type DealerListParams as DealerListParams,
   };

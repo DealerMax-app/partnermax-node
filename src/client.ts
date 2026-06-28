@@ -21,12 +21,14 @@ import * as API from './resources/index';
 import { APIPromise } from './core/api-promise';
 import { KeyIssueParams, KeyIssueResponse, KeyListResponse, Keys } from './resources/keys';
 import {
+  DealerCreateParams,
   DealerDetail,
   DealerListParams,
   DealerSummariesCursorPage,
   DealerSummary,
   DealerUpdateParams,
   Dealers,
+  PartnerDealerResponse,
 } from './resources/dealers/dealers';
 import { type Fetch } from './internal/builtin-types';
 import { HeadersLike, NullableHeaders, buildHeaders } from './internal/headers';
@@ -861,7 +863,9 @@ export declare namespace Partnermax {
     Dealers as Dealers,
     type DealerDetail as DealerDetail,
     type DealerSummary as DealerSummary,
+    type PartnerDealerResponse as PartnerDealerResponse,
     type DealerSummariesCursorPage as DealerSummariesCursorPage,
+    type DealerCreateParams as DealerCreateParams,
     type DealerUpdateParams as DealerUpdateParams,
     type DealerListParams as DealerListParams,
   };

@@ -9,6 +9,28 @@ const client = new Partnermax({
 
 describe('resource dealers', () => {
   // Mock server tests are disabled
+  test.skip('create: only required params', async () => {
+    const responsePromise = client.dealers.create({ external_dealer_id: 'x' });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('create: required and optional params', async () => {
+    const response = await client.dealers.create({
+      external_dealer_id: 'x',
+      activate: true,
+      metadata: { foo: 'string' },
+      'Idempotency-Key': 'Idempotency-Key',
+    });
+  });
+
+  // Mock server tests are disabled
   test.skip('retrieve', async () => {
     const responsePromise = client.dealers.retrieve('dealer_id');
     const rawResponse = await responsePromise.asResponse();
