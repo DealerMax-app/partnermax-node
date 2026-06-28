@@ -17,9 +17,11 @@ Types:
 
 - <code><a href="./src/resources/dealers/dealers.ts">DealerDetail</a></code>
 - <code><a href="./src/resources/dealers/dealers.ts">DealerSummary</a></code>
+- <code><a href="./src/resources/dealers/dealers.ts">PartnerDealerResponse</a></code>
 
 Methods:
 
+- <code title="post /api/partner/dealers">client.dealers.<a href="./src/resources/dealers/dealers.ts">create</a>({ ...params }) -> PartnerDealerResponse</code>
 - <code title="get /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">retrieve</a>(dealerID) -> DealerDetail</code>
 - <code title="patch /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">update</a>(dealerID, { ...params }) -> DealerDetail</code>
 - <code title="get /v1/dealers">client.dealers.<a href="./src/resources/dealers/dealers.ts">list</a>({ ...params }) -> DealerSummariesCursorPage</code>
