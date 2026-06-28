@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2 (2026-06-28)
+
+Full Changelog: [v0.4.1...v0.4.2](https://github.com/DealerMax-app/partnermax-node/compare/v0.4.1...v0.4.2)
+
+### Bug Fixes
+
+* expose dealer create in SDK ([8f9a868](https://github.com/DealerMax-app/partnermax-node/commit/8f9a8688809ecfc588e3edf97225042133cd7e79))
+
 ## 0.4.1 (2026-06-28)
 
 Full Changelog: [v0.4.0...v0.4.1](https://github.com/DealerMax-app/partnermax-node/compare/v0.4.0...v0.4.1)
