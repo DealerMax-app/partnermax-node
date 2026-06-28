@@ -1,4 +1,4 @@
-configured_endpoints: 20
-openapi_spec_url: https://storage.googleapis.com/stainless-sdk-openapi-specs/azure/partnermax-0c2a3d56340127842c8ff928074b12d81705700b06b497d6965138738b28b656.yml
-openapi_spec_hash: 515afa9ff78787ae666a539d452d5d35
-config_hash: a9bb2c41f2e0cabac79eda1df90a1445
+configured_endpoints: 21
+openapi_spec_url: https://storage.googleapis.com/stainless-sdk-openapi-specs/azure/partnermax-fa73d56cb03e02b0bf904b1336512bcdef94150eb14ecd514ef709214608d69f.yml
+openapi_spec_hash: 5b05f6d46fc6d51dcd5b9930a6fc29ba
+config_hash: 085d04841ad5a779fb40c5000448d9d9

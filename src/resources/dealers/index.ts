@@ -4,6 +4,8 @@ export {
   Dealers,
   type DealerDetail,
   type DealerSummary,
+  type PartnerDealerResponse,
+  type DealerCreateParams,
   type DealerUpdateParams,
   type DealerListParams,
   type DealerSummariesCursorPage,
