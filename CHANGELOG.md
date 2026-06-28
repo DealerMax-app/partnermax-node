@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1 (2026-06-28)
+
+Full Changelog: [v0.4.0...v0.4.1](https://github.com/DealerMax-app/partnermax-node/compare/v0.4.0...v0.4.1)
+
+### Bug Fixes
+
+* regenerate SDK from openapi 1.5.10 upload schema ([515e635](https://github.com/DealerMax-app/partnermax-node/commit/515e63504bffe2f7b50abad54e177940bee7cc6e))
+
 ## 0.4.0 (2026-06-28)
 
 Full Changelog: [v0.3.0...v0.4.0](https://github.com/DealerMax-app/partnermax-node/compare/v0.3.0...v0.4.0)
