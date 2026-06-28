@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 (2026-06-28)
+
+Full Changelog: [v0.2.2...v0.3.0](https://github.com/DealerMax-app/partnermax-node/compare/v0.2.2...v0.3.0)
+
+### Features
+
+* **api:** api update ([bda6ea5](https://github.com/DealerMax-app/partnermax-node/commit/bda6ea52db3682337e39170cf647f9a4cdd65e77))
+
+
+### Chores
+
+* update SDK settings ([454b115](https://github.com/DealerMax-app/partnermax-node/commit/454b1150a7d6a2a15213e0848d81329b9e3006b2))
+* update SDK settings ([aa90101](https://github.com/DealerMax-app/partnermax-node/commit/aa90101bf6c48880310b6615a5ea48bdd50ebb47))
+* update SDK settings ([4310496](https://github.com/DealerMax-app/partnermax-node/commit/43104963dbd2abd907320b5207078b72bf7b994b))
+
 ## 0.2.2 (2026-06-27)
 
 Full Changelog: [v0.2.1...v0.2.2](https://github.com/DealerMax-app/partnermax-node/compare/v0.2.1...v0.2.2)

@@ -322,13 +322,13 @@ describe('instantiate client', () => {
     test('empty env variable', () => {
       process.env['PARTNERMAX_BASE_URL'] = ''; // empty
       const client = new Partnermax({ apiKey: 'My API Key' });
-      expect(client.baseURL).toEqual('https://developers.dealermax.app');
+      expect(client.baseURL).toEqual('https://api.dealermax.app');
     });
 
     test('blank env variable', () => {
       process.env['PARTNERMAX_BASE_URL'] = '  '; // blank
       const client = new Partnermax({ apiKey: 'My API Key' });
-      expect(client.baseURL).toEqual('https://developers.dealermax.app');
+      expect(client.baseURL).toEqual('https://api.dealermax.app');
     });
 
     test('env variable with environment', () => {
@@ -345,7 +345,7 @@ describe('instantiate client', () => {
         baseURL: null,
         environment: 'production',
       });
-      expect(client.baseURL).toEqual('https://developers.dealermax.app');
+      expect(client.baseURL).toEqual('https://api.dealermax.app');
     });
 
     test('in request options', () => {

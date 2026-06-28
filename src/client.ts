@@ -42,8 +42,8 @@ import {
 import { isEmptyObj } from './internal/utils/values';
 
 const environments = {
-  production: 'https://developers.dealermax.app',
-  sandbox: 'https://sandbox.developers.dealermax.app',
+  production: 'https://api.dealermax.app',
+  sandbox: 'https://api.dealermax.app',
 };
 type Environment = keyof typeof environments;
 
@@ -62,8 +62,8 @@ export interface ClientOptions {
    * Specifies the environment to use for the API.
    *
    * Each environment maps to a different base URL:
-   * - `production` corresponds to `https://developers.dealermax.app`
-   * - `sandbox` corresponds to `https://sandbox.developers.dealermax.app`
+   * - `production` corresponds to `https://api.dealermax.app`
+   * - `sandbox` corresponds to `https://api.dealermax.app`
    */
   environment?: Environment | undefined;
 
@@ -161,7 +161,7 @@ export class Partnermax {
    * @param {string | null | undefined} [opts.apiKey=process.env['PARTNERMAX_API_KEY'] ?? null]
    * @param {string | null | undefined} [opts.bearerToken=process.env['PARTNERMAX_BEARER_TOKEN'] ?? null]
    * @param {Environment} [opts.environment=production] - Specifies the environment URL to use for the API.
-   * @param {string} [opts.baseURL=process.env['PARTNERMAX_BASE_URL'] ?? https://developers.dealermax.app] - Override the default base URL for the API.
+   * @param {string} [opts.baseURL=process.env['PARTNERMAX_BASE_URL'] ?? https://api.dealermax.app] - Override the default base URL for the API.
    * @param {number} [opts.timeout=1 minute] - The maximum amount of time (in milliseconds) the client will wait for a response before timing out.
    * @param {MergedRequestInit} [opts.fetchOptions] - Additional `RequestInit` options to be passed to `fetch` calls.
    * @param {Fetch} [opts.fetch] - Specify a custom `fetch` function implementation.
