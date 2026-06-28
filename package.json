@@ -1,6 +1,6 @@
 {
   "name": "partnermax",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "The official TypeScript library for the Partnermax API",
   "author": "Partnermax <support@dealermax.app>",
   "types": "dist/index.d.ts",
