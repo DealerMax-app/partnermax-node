@@ -2,6 +2,7 @@
 
 import { APIResource } from '../../../core/resource';
 import { APIPromise } from '../../../core/api-promise';
+import { type Uploadable } from '../../../core/uploads';
 import { buildHeaders } from '../../../internal/headers';
 import { RequestOptions } from '../../../internal/request-options';
 import { multipartFormRequestOptions } from '../../../internal/uploads';
@@ -130,7 +131,7 @@ export interface ImageCreateParams {
    * Body param: The photo file. JPEG, PNG, or WebP, up to 15 MB. WebP is converted
    * to PNG server-side.
    */
-  file: string;
+  file: Uploadable;
 }
 
 export interface ImageListParams {
