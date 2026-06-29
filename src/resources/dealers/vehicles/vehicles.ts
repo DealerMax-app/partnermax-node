@@ -1,6 +1,15 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../../../core/resource';
+import * as AccessoriesAPI from './accessories';
+import {
+  Accessories,
+  AccessoryRefreshCatalogParams,
+  AccessoryRetrieveCatalogParams,
+  AccessoryUpdateParams,
+  VehicleAccessoriesCatalog,
+  VehicleAccessoryItem,
+} from './accessories';
 import * as ImagesAPI from './images';
 import {
   ImageCreateParams,
@@ -17,10 +26,11 @@ import { RequestOptions } from '../../../internal/request-options';
 import { path } from '../../../internal/utils/path';
 
 /**
- * Used-vehicle stock management for partner-owned dealers. The partner uploads each used vehicle by its canonical Motornet UNI code; DealerMAX joins the partner-provided pricing and stock metadata with the catalog master so the resulting listing is immediately indexed by the AI surfaces (MCP server, ChatGPT Custom GPT, NLWeb /ask, and the SEO/JSON-LD layer).
+ * Used-vehicle stock management for dealers registered under a partner. Every vehicle request is scoped by dealer_id; the partner uploads each used vehicle by its canonical Motornet UNI code; DealerMAX joins the partner-provided pricing and stock metadata with the catalog master so the resulting listing is immediately indexed by the AI surfaces (MCP server, ChatGPT Custom GPT, NLWeb /ask, and the SEO/JSON-LD layer).
  */
 export class Vehicles extends APIResource {
   images: ImagesAPI.Images = new ImagesAPI.Images(this._client);
+  accessories: AccessoriesAPI.Accessories = new AccessoriesAPI.Accessories(this._client);
 
   /**
    * Provision a new used vehicle in a dealer's stock.
@@ -80,7 +90,7 @@ export class Vehicles extends APIResource {
   }
 
   /**
-   * List vehicles in a dealer's stock owned by the calling partner.
+   * List vehicles in the resolved dealer's stock for the calling partner.
    *
    * Cursor pagination is opaque base64url over the last vehicle UUID. Default sort
    * is `i.data_inserimento ASC` so freshly provisioned vehicles surface at the tail.
@@ -281,9 +291,9 @@ export interface BulkRowOutcome {
    *   consumers display (descriptions, highlights, FAQ, SEO meta). `null` until the
    *   worker has processed the vehicle.
    *
-   * Dealer-internal margin and operations data remains outside this SDK surface;
-   * partners receive only the inventory, commercial, catalogue, media, and
-   * AI-derived fields needed to publish the vehicle.
+   * Dealer-entered inventory, commercial, condition, service-history, catalogue,
+   * media, and AI-derived fields are available through the SDK so partners can keep
+   * the same stock record DealerMax shows.
    */
   vehicle?: VehicleDetail | null;
 }
@@ -303,9 +313,9 @@ export interface BulkRowOutcome {
  *   consumers display (descriptions, highlights, FAQ, SEO meta). `null` until the
  *   worker has processed the vehicle.
  *
- * Dealer-internal margin and operations data remains outside this SDK surface;
- * partners receive only the inventory, commercial, catalogue, media, and
- * AI-derived fields needed to publish the vehicle.
+ * Dealer-entered inventory, commercial, condition, service-history, catalogue,
+ * media, and AI-derived fields are available through the SDK so partners can keep
+ * the same stock record DealerMax shows.
  */
 export interface VehicleDetail {
   certified_km: number;
@@ -316,9 +326,9 @@ export interface VehicleDetail {
 
   description: string;
 
-  extended_warranty_enabled: boolean;
+  enabled_channels: Array<'rewind' | 'nos'>;
 
-  is_for_sale: boolean;
+  extended_warranty_enabled: boolean;
 
   is_visible: boolean;
 
@@ -336,8 +346,6 @@ export interface VehicleDetail {
 
   vat_displayed: boolean;
 
-  vehicle_damaged: boolean;
-
   vehicle_id: string;
 
   /**
@@ -347,15 +355,37 @@ export interface VehicleDetail {
    */
   ai_content?: AIContent | null;
 
+  ai_short?: string | null;
+
+  ai_tagline?: string | null;
+
   alloy_wheel_size?: number | null;
+
+  base_color?: string | null;
 
   brand?: string | null;
 
+  co2_emissions_g_km_override?: number | null;
+
   color?: string | null;
+
+  cost_price_eur?: number | null;
+
+  cover_image_url?: string | null;
+
+  damage_repaired?: boolean | null;
+
+  deleted_at?: string | null;
+
+  double_keys_available?: boolean;
 
   extended_warranty_months?: number | null;
 
   fuel_type?: string | null;
+
+  fuel_type_override?: string | null;
+
+  image_count?: number;
 
   /**
    * Vehicle photos in display order. The first entry is the cover photo
@@ -363,11 +393,33 @@ export interface VehicleDetail {
    */
   image_urls?: Array<string>;
 
+  inspection_due_date?: string | null;
+
+  last_inspection_date?: string | null;
+
+  last_inspection_km?: number | null;
+
+  last_service_date?: string | null;
+
+  last_service_km?: number | null;
+
+  last_service_notes?: string | null;
+
   model?: string | null;
 
   notes?: string | null;
 
+  ownership_transfer_date?: string | null;
+
+  power_kw_override?: number | null;
+
+  previous_owner_count?: number | null;
+
+  property_tax_due_date?: string | null;
+
   registration_month?: number | null;
+
+  service_history_available?: boolean;
 
   /**
    * Flat dictionary of Motornet-backed technical attributes for this
@@ -378,7 +430,17 @@ export interface VehicleDetail {
 
   trim?: string | null;
 
+  trim_alias?: string | null;
+
+  vehicle_damaged?: boolean | null;
+
   vin?: string | null;
+
+  wltp_consumption_combined_l_100km?: number | null;
+
+  wltp_consumption_extraurban_l_100km?: number | null;
+
+  wltp_consumption_urban_l_100km?: number | null;
 }
 
 /**
@@ -407,9 +469,11 @@ export interface VehicleSummary {
 
   dealer_id: string;
 
-  is_for_sale: boolean;
+  enabled_channels: Array<'rewind' | 'nos'>;
 
   is_visible: boolean;
+
+  last_modified_at: string;
 
   motornet_code: string;
 
@@ -419,17 +483,39 @@ export interface VehicleSummary {
 
   sale_price_eur: number;
 
+  vat_displayed: boolean;
+
   vehicle_id: string;
+
+  ai_short?: string | null;
+
+  ai_tagline?: string | null;
 
   brand?: string | null;
 
   color?: string | null;
 
+  cost_price_eur?: number | null;
+
+  cover_image_url?: string | null;
+
+  damage_repaired?: boolean | null;
+
+  deleted_at?: string | null;
+
   fuel_type?: string | null;
+
+  image_count?: number;
 
   model?: string | null;
 
+  registration_month?: number | null;
+
   trim?: string | null;
+
+  trim_alias?: string | null;
+
+  vehicle_damaged?: boolean | null;
 }
 
 export interface VehicleCreateParams {
@@ -442,8 +528,8 @@ export interface VehicleCreateParams {
    * Body param: Motornet UNI code identifying the exact vehicle configuration. Must
    * exist in the DealerMAX auto/VCOM catalogue at submission time; otherwise the
    * call returns 422 `motornet_code_not_in_catalogue`. Partners may send a code from
-   * their own Motornet agreement or use the paid control-plane targa/VIN resolver
-   * before creating the vehicle.
+   * their own Motornet agreement or use the paid targa/VIN resolver on
+   * api.dealermax.app before creating the vehicle.
    */
   motornet_code: string;
 
@@ -460,12 +546,6 @@ export interface VehicleCreateParams {
   registration_year: number;
 
   /**
-   * Body param: Public sale price in EUR. Surfaced on MCP / Custom GPT / NLWeb and
-   * on the dealer's site JSON-LD `Offer.price`.
-   */
-  sale_price_eur: number;
-
-  /**
    * Body param
    */
   alloy_wheel_size?: number | null;
@@ -473,13 +553,45 @@ export interface VehicleCreateParams {
   /**
    * Body param
    */
+  base_color?: string | null;
+
+  /**
+   * Body param
+   */
+  co2_emissions_g_km_override?: number | null;
+
+  /**
+   * Body param
+   */
   color?: string | null;
+
+  /**
+   * Body param
+   */
+  cost_price_eur?: number | null;
+
+  /**
+   * Body param: Tri-state repaired-damage declaration: true=yes, false=no,
+   * null=unknown.
+   */
+  damage_repaired?: boolean | null;
 
   /**
    * Body param: Partner-supplied long description. Surfaced on the dealer site
    * detail page.
    */
   description?: string;
+
+  /**
+   * Body param
+   */
+  double_keys_available?: boolean;
+
+  /**
+   * Body param: Publication channels enabled for this vehicle. Default is
+   * ['rewind'].
+   */
+  enabled_channels?: Array<'rewind' | 'nos'>;
 
   /**
    * Body param
@@ -492,9 +604,14 @@ export interface VehicleCreateParams {
   extended_warranty_months?: number | null;
 
   /**
-   * Body param: When false the vehicle remains in stock but is not offered for sale.
+   * Body param
    */
-  is_for_sale?: boolean;
+  fuel_type_override?: string | null;
+
+  /**
+   * Body param
+   */
+  inspection_due_date?: string | null;
 
   /**
    * Body param: Soft-publish flag. When false the row exists in stock but is
@@ -503,14 +620,75 @@ export interface VehicleCreateParams {
   is_visible?: boolean;
 
   /**
+   * Body param
+   */
+  last_inspection_date?: string | null;
+
+  /**
+   * Body param
+   */
+  last_inspection_km?: number | null;
+
+  /**
+   * Body param
+   */
+  last_service_date?: string | null;
+
+  /**
+   * Body param
+   */
+  last_service_km?: number | null;
+
+  /**
+   * Body param
+   */
+  last_service_notes?: string | null;
+
+  /**
    * Body param: Free-form short notes for partner-facing vehicle detail views.
    */
   notes?: string | null;
 
   /**
+   * Body param
+   */
+  ownership_transfer_date?: string | null;
+
+  /**
+   * Body param
+   */
+  power_kw_override?: number | null;
+
+  /**
+   * Body param
+   */
+  previous_owner_count?: number | null;
+
+  /**
+   * Body param
+   */
+  property_tax_due_date?: string | null;
+
+  /**
    * Body param: Month of registration (1–12).
    */
   registration_month?: number | null;
+
+  /**
+   * Body param: Public REWIND sale price in EUR. Required when enabled_channels
+   * contains 'rewind'; optional/0 for NOS-only vehicles.
+   */
+  sale_price_eur?: number | null;
+
+  /**
+   * Body param: Dealer-declared certified service-history availability.
+   */
+  service_history_available?: boolean;
+
+  /**
+   * Body param
+   */
+  trim_alias?: string | null;
 
   /**
    * Body param: If true the public price is displayed VAT-exposed (B2B); otherwise
@@ -519,15 +697,30 @@ export interface VehicleCreateParams {
   vat_displayed?: boolean;
 
   /**
-   * Body param
+   * Body param: Tri-state damage declaration: true=yes, false=no, null=unknown.
    */
-  vehicle_damaged?: boolean;
+  vehicle_damaged?: boolean | null;
 
   /**
    * Body param: ISO 3779 vehicle identification number. Optional but strongly
    * recommended.
    */
   vin?: string | null;
+
+  /**
+   * Body param
+   */
+  wltp_consumption_combined_l_100km?: number | null;
+
+  /**
+   * Body param
+   */
+  wltp_consumption_extraurban_l_100km?: number | null;
+
+  /**
+   * Body param
+   */
+  wltp_consumption_urban_l_100km?: number | null;
 
   /**
    * Header param
@@ -563,7 +756,17 @@ export interface VehicleUpdateParams {
   /**
    * Body param
    */
+  base_color?: string | null;
+
+  /**
+   * Body param
+   */
   certified_km?: number | null;
+
+  /**
+   * Body param
+   */
+  co2_emissions_g_km_override?: number | null;
 
   /**
    * Body param
@@ -573,7 +776,27 @@ export interface VehicleUpdateParams {
   /**
    * Body param
    */
+  cost_price_eur?: number | null;
+
+  /**
+   * Body param
+   */
+  damage_repaired?: boolean | null;
+
+  /**
+   * Body param
+   */
   description?: string | null;
+
+  /**
+   * Body param
+   */
+  double_keys_available?: boolean | null;
+
+  /**
+   * Body param
+   */
+  enabled_channels?: Array<'rewind' | 'nos'> | null;
 
   /**
    * Body param
@@ -588,7 +811,12 @@ export interface VehicleUpdateParams {
   /**
    * Body param
    */
-  is_for_sale?: boolean | null;
+  fuel_type_override?: string | null;
+
+  /**
+   * Body param
+   */
+  inspection_due_date?: string | null;
 
   /**
    * Body param
@@ -598,7 +826,52 @@ export interface VehicleUpdateParams {
   /**
    * Body param
    */
+  last_inspection_date?: string | null;
+
+  /**
+   * Body param
+   */
+  last_inspection_km?: number | null;
+
+  /**
+   * Body param
+   */
+  last_service_date?: string | null;
+
+  /**
+   * Body param
+   */
+  last_service_km?: number | null;
+
+  /**
+   * Body param
+   */
+  last_service_notes?: string | null;
+
+  /**
+   * Body param
+   */
   notes?: string | null;
+
+  /**
+   * Body param
+   */
+  ownership_transfer_date?: string | null;
+
+  /**
+   * Body param
+   */
+  power_kw_override?: number | null;
+
+  /**
+   * Body param
+   */
+  previous_owner_count?: number | null;
+
+  /**
+   * Body param
+   */
+  property_tax_due_date?: string | null;
 
   /**
    * Body param
@@ -608,7 +881,22 @@ export interface VehicleUpdateParams {
   /**
    * Body param
    */
+  registration_year?: number | null;
+
+  /**
+   * Body param
+   */
   sale_price_eur?: number | null;
+
+  /**
+   * Body param
+   */
+  service_history_available?: boolean | null;
+
+  /**
+   * Body param
+   */
+  trim_alias?: string | null;
 
   /**
    * Body param
@@ -621,6 +909,26 @@ export interface VehicleUpdateParams {
   vehicle_damaged?: boolean | null;
 
   /**
+   * Body param
+   */
+  vin?: string | null;
+
+  /**
+   * Body param
+   */
+  wltp_consumption_combined_l_100km?: number | null;
+
+  /**
+   * Body param
+   */
+  wltp_consumption_extraurban_l_100km?: number | null;
+
+  /**
+   * Body param
+   */
+  wltp_consumption_urban_l_100km?: number | null;
+
+  /**
    * Header param
    */
   'Idempotency-Key'?: string;
@@ -628,15 +936,15 @@ export interface VehicleUpdateParams {
 
 export interface VehicleListParams extends CursorPageParams {
   /**
+   * Filter vehicles enabled on one publication channel: rewind or nos.
+   */
+  enabled_channel?: 'rewind' | 'nos' | null;
+
+  /**
    * If true, soft-deleted rows (`venduto_il` populated) are also returned. Default
    * false — listings hide soft-deleted vehicles.
    */
   include_deleted?: boolean;
-
-  /**
-   * Filter on the sale flag.
-   */
-  is_for_sale?: boolean | null;
 
   /**
    * Filter on the visibility flag.
@@ -671,8 +979,8 @@ export namespace VehicleBulkParams {
    * server-side from DealerMAX's licensed Motornet-backed catalogue — the partner
    * never types them.
    *
-   * Fields immutable after creation: `motornet_code`, `plate`, `vin`. Other fields
-   * may be updated via PATCH.
+   * Fields immutable after creation: `motornet_code`, `plate`. The VIN and other
+   * dealer-entered fields may be corrected via PATCH.
    */
   export interface Vehicle {
     /**
@@ -684,8 +992,8 @@ export namespace VehicleBulkParams {
      * Motornet UNI code identifying the exact vehicle configuration. Must exist in the
      * DealerMAX auto/VCOM catalogue at submission time; otherwise the call returns 422
      * `motornet_code_not_in_catalogue`. Partners may send a code from their own
-     * Motornet agreement or use the paid control-plane targa/VIN resolver before
-     * creating the vehicle.
+     * Motornet agreement or use the paid targa/VIN resolver on api.dealermax.app
+     * before creating the vehicle.
      */
     motornet_code: string;
 
@@ -701,29 +1009,40 @@ export namespace VehicleBulkParams {
      */
     registration_year: number;
 
-    /**
-     * Public sale price in EUR. Surfaced on MCP / Custom GPT / NLWeb and on the
-     * dealer's site JSON-LD `Offer.price`.
-     */
-    sale_price_eur: number;
-
     alloy_wheel_size?: number | null;
 
+    base_color?: string | null;
+
+    co2_emissions_g_km_override?: number | null;
+
     color?: string | null;
+
+    cost_price_eur?: number | null;
+
+    /**
+     * Tri-state repaired-damage declaration: true=yes, false=no, null=unknown.
+     */
+    damage_repaired?: boolean | null;
 
     /**
      * Partner-supplied long description. Surfaced on the dealer site detail page.
      */
     description?: string;
 
+    double_keys_available?: boolean;
+
+    /**
+     * Publication channels enabled for this vehicle. Default is ['rewind'].
+     */
+    enabled_channels?: Array<'rewind' | 'nos'>;
+
     extended_warranty_enabled?: boolean;
 
     extended_warranty_months?: number | null;
 
-    /**
-     * When false the vehicle remains in stock but is not offered for sale.
-     */
-    is_for_sale?: boolean;
+    fuel_type_override?: string | null;
+
+    inspection_due_date?: string | null;
 
     /**
      * Soft-publish flag. When false the row exists in stock but is excluded from
@@ -731,10 +1050,28 @@ export namespace VehicleBulkParams {
      */
     is_visible?: boolean;
 
+    last_inspection_date?: string | null;
+
+    last_inspection_km?: number | null;
+
+    last_service_date?: string | null;
+
+    last_service_km?: number | null;
+
+    last_service_notes?: string | null;
+
     /**
      * Free-form short notes for partner-facing vehicle detail views.
      */
     notes?: string | null;
+
+    ownership_transfer_date?: string | null;
+
+    power_kw_override?: number | null;
+
+    previous_owner_count?: number | null;
+
+    property_tax_due_date?: string | null;
 
     /**
      * Month of registration (1–12).
@@ -742,21 +1079,44 @@ export namespace VehicleBulkParams {
     registration_month?: number | null;
 
     /**
+     * Public REWIND sale price in EUR. Required when enabled_channels contains
+     * 'rewind'; optional/0 for NOS-only vehicles.
+     */
+    sale_price_eur?: number | null;
+
+    /**
+     * Dealer-declared certified service-history availability.
+     */
+    service_history_available?: boolean;
+
+    trim_alias?: string | null;
+
+    /**
      * If true the public price is displayed VAT-exposed (B2B); otherwise VAT-inclusive
      * (B2C).
      */
     vat_displayed?: boolean;
 
-    vehicle_damaged?: boolean;
+    /**
+     * Tri-state damage declaration: true=yes, false=no, null=unknown.
+     */
+    vehicle_damaged?: boolean | null;
 
     /**
      * ISO 3779 vehicle identification number. Optional but strongly recommended.
      */
     vin?: string | null;
+
+    wltp_consumption_combined_l_100km?: number | null;
+
+    wltp_consumption_extraurban_l_100km?: number | null;
+
+    wltp_consumption_urban_l_100km?: number | null;
   }
 }
 
 Vehicles.Images = Images;
+Vehicles.Accessories = Accessories;
 
 export declare namespace Vehicles {
   export {
@@ -782,5 +1142,14 @@ export declare namespace Vehicles {
     type ImageCreateParams as ImageCreateParams,
     type ImageListParams as ImageListParams,
     type ImageDeleteParams as ImageDeleteParams,
+  };
+
+  export {
+    Accessories as Accessories,
+    type VehicleAccessoriesCatalog as VehicleAccessoriesCatalog,
+    type VehicleAccessoryItem as VehicleAccessoryItem,
+    type AccessoryUpdateParams as AccessoryUpdateParams,
+    type AccessoryRefreshCatalogParams as AccessoryRefreshCatalogParams,
+    type AccessoryRetrieveCatalogParams as AccessoryRetrieveCatalogParams,
   };
 }

@@ -26,6 +26,9 @@ Methods:
 - <code title="patch /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">update</a>(dealerID, { ...params }) -> DealerDetail</code>
 - <code title="get /v1/dealers">client.dealers.<a href="./src/resources/dealers/dealers.ts">list</a>({ ...params }) -> DealerSummariesCursorPage</code>
 - <code title="delete /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">delete</a>(dealerID) -> void</code>
+- <code title="post /api/partner/dealers/{external_dealer_id}/activate">client.dealers.<a href="./src/resources/dealers/dealers.ts">activateReference</a>(externalDealerID) -> PartnerDealerResponse</code>
+- <code title="delete /api/partner/dealers/{external_dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">revokeReference</a>(externalDealerID) -> void</code>
+- <code title="post /api/partner/dealers/{external_dealer_id}/suspend">client.dealers.<a href="./src/resources/dealers/dealers.ts">suspendReference</a>(externalDealerID) -> PartnerDealerResponse</code>
 
 ## NltSettings
 
@@ -85,3 +88,16 @@ Methods:
 - <code title="post /v1/dealers/{dealer_id}/vehicles/{vehicle_id}/images">client.dealers.vehicles.images.<a href="./src/resources/dealers/vehicles/images.ts">create</a>(vehicleID, { ...params }) -> VehicleImage</code>
 - <code title="get /v1/dealers/{dealer_id}/vehicles/{vehicle_id}/images">client.dealers.vehicles.images.<a href="./src/resources/dealers/vehicles/images.ts">list</a>(vehicleID, { ...params }) -> VehicleImageList</code>
 - <code title="delete /v1/dealers/{dealer_id}/vehicles/{vehicle_id}/images/{image_id}">client.dealers.vehicles.images.<a href="./src/resources/dealers/vehicles/images.ts">delete</a>(imageID, { ...params }) -> void</code>
+
+### Accessories
+
+Types:
+
+- <code><a href="./src/resources/dealers/vehicles/accessories.ts">VehicleAccessoriesCatalog</a></code>
+- <code><a href="./src/resources/dealers/vehicles/accessories.ts">VehicleAccessoryItem</a></code>
+
+Methods:
+
+- <code title="put /v1/dealers/{dealer_id}/vehicles/{vehicle_id}/accessories">client.dealers.vehicles.accessories.<a href="./src/resources/dealers/vehicles/accessories.ts">update</a>(vehicleID, { ...params }) -> VehicleAccessoriesCatalog</code>
+- <code title="post /v1/dealers/{dealer_id}/vehicles/{vehicle_id}/accessories/catalog/refresh">client.dealers.vehicles.accessories.<a href="./src/resources/dealers/vehicles/accessories.ts">refreshCatalog</a>(vehicleID, { ...params }) -> VehicleAccessoriesCatalog</code>
+- <code title="get /v1/dealers/{dealer_id}/vehicles/{vehicle_id}/accessories/catalog">client.dealers.vehicles.accessories.<a href="./src/resources/dealers/vehicles/accessories.ts">retrieveCatalog</a>(vehicleID, { ...params }) -> VehicleAccessoriesCatalog</code>

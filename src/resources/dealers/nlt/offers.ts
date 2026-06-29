@@ -312,9 +312,8 @@ export namespace OfferRetrieveResponse {
    * One network dealer's quote for this offer.
    *
    * Sorted by `min_monthly_canon_eur ASC`. In PartnerMAX this list is scoped to the
-   * calling partner's `partner_dealers` rows and returns the partner-owned
-   * `external_dealer_id`. Legacy `dlr_<id>` values remain only for compatibility
-   * callers.
+   * calling partner's dealer references and returns the partner-supplied external
+   * dealer id.
    */
   export interface NetworkOffer {
     dealer_id: string;
