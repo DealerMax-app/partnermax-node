@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 (2026-06-29)
+
+Full Changelog: [v0.4.2...v0.5.0](https://github.com/DealerMax-app/partnermax-node/compare/v0.4.2...v0.5.0)
+
+### Features
+
+* regenerate PartnerMAX SDKs for v1.5.13 ([f52c426](https://github.com/DealerMax-app/partnermax-node/commit/f52c4261a25303874f7243c6f2626f1d210f9ee4))
+* regenerate SDK for vehicle contract 1.5.12 ([6393333](https://github.com/DealerMax-app/partnermax-node/commit/6393333117d270671b25bc196ea47c87ec20360b))
+
 ## 0.4.2 (2026-06-28)
 
 Full Changelog: [v0.4.1...v0.4.2](https://github.com/DealerMax-app/partnermax-node/compare/v0.4.1...v0.4.2)
