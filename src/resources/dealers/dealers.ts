@@ -29,7 +29,7 @@ import { RequestOptions } from '../../internal/request-options';
 import { path } from '../../internal/utils/path';
 
 /**
- * Provision, update, deactivate, and list dealers owned by the calling partner.
+ * Register, update, deactivate, and list dealer references registered for the calling partner.
  */
 export class Dealers extends APIResource {
   nltSettings: NltSettingsAPI.NltSettings = new NltSettingsAPI.NltSettings(this._client);
@@ -37,7 +37,7 @@ export class Dealers extends APIResource {
   vehicles: VehiclesAPI.Vehicles = new VehiclesAPI.Vehicles(this._client);
 
   /**
-   * Create a partner-owned opaque dealer reference. SDK users call
+   * Register an opaque dealer reference for this partner. SDK users call
    * `client.dealers.create(...)`; the generated client sends this request to the
    * core-owned `/api/partner/dealers` route.
    */
@@ -76,7 +76,7 @@ export class Dealers extends APIResource {
   }
 
   /**
-   * List dealers owned by the calling partner. Cursor-paginated.
+   * List dealer references registered for the calling partner. Cursor-paginated.
    */
   list(
     query: DealerListParams | null | undefined = {},
@@ -190,7 +190,7 @@ export interface PartnerDealerResponse {
   created_at: string;
 
   /**
-   * The partner-owned external dealer id.
+   * The partner-supplied external dealer id.
    */
   dealer_id: string;
 
@@ -210,8 +210,8 @@ export interface PartnerDealerResponse {
 
 export interface DealerCreateParams {
   /**
-   * Body param: Partner-owned opaque dealer id. This becomes the dealer_id used by
-   * vehicle and NLT SDK calls.
+   * Body param: Partner-supplied opaque dealer id. This becomes the dealer_id used
+   * by vehicle and NLT SDK calls.
    */
   external_dealer_id: string;
 
