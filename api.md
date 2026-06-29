@@ -26,6 +26,9 @@ Methods:
 - <code title="patch /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">update</a>(dealerID, { ...params }) -> DealerDetail</code>
 - <code title="get /v1/dealers">client.dealers.<a href="./src/resources/dealers/dealers.ts">list</a>({ ...params }) -> DealerSummariesCursorPage</code>
 - <code title="delete /v1/dealers/{dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">delete</a>(dealerID) -> void</code>
+- <code title="post /api/partner/dealers/{external_dealer_id}/activate">client.dealers.<a href="./src/resources/dealers/dealers.ts">activateReference</a>(externalDealerID) -> PartnerDealerResponse</code>
+- <code title="delete /api/partner/dealers/{external_dealer_id}">client.dealers.<a href="./src/resources/dealers/dealers.ts">revokeReference</a>(externalDealerID) -> void</code>
+- <code title="post /api/partner/dealers/{external_dealer_id}/suspend">client.dealers.<a href="./src/resources/dealers/dealers.ts">suspendReference</a>(externalDealerID) -> PartnerDealerResponse</code>
 
 ## NltSettings
 
