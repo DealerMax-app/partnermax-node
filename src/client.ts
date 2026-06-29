@@ -838,7 +838,7 @@ export class Partnermax {
    */
   keys: API.Keys = new API.Keys(this);
   /**
-   * Provision, update, deactivate, and list dealers owned by the calling partner.
+   * Register, update, deactivate, and list dealer references registered for the calling partner.
    */
   dealers: API.Dealers = new API.Dealers(this);
 }

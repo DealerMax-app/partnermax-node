@@ -1,6 +1,14 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 export {
+  Accessories,
+  type VehicleAccessoriesCatalog,
+  type VehicleAccessoryItem,
+  type AccessoryUpdateParams,
+  type AccessoryRefreshCatalogParams,
+  type AccessoryRetrieveCatalogParams,
+} from './accessories';
+export {
   Images,
   type VehicleImage,
   type VehicleImageList,
