@@ -38,8 +38,8 @@ export class Dealers extends APIResource {
 
   /**
    * Register an opaque dealer reference for this partner. SDK users call
-   * `client.dealers.create(...)`; the generated client sends this request to the
-   * core-owned `/api/partner/dealers` route.
+   * `client.dealers.create(...)`; the generated client sends this request to
+   * `/api/partner/dealers` on the public PartnerMAX API host.
    */
   create(params: DealerCreateParams, options?: RequestOptions): APIPromise<PartnerDealerResponse> {
     const { 'Idempotency-Key': idempotencyKey, ...body } = params;
@@ -93,6 +93,36 @@ export class Dealers extends APIResource {
       ...options,
       headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
+  }
+
+  /**
+   * Reactivate a non-terminal opaque dealer reference. SDK users can also call
+   * `PATCH /v1/dealers/{dealer_id}` with `status=active`; this registry endpoint is
+   * exposed for integrations that manage the `/api/partner` lifecycle directly.
+   */
+  activateReference(externalDealerID: string, options?: RequestOptions): APIPromise<PartnerDealerResponse> {
+    return this._client.post(path`/api/partner/dealers/${externalDealerID}/activate`, options);
+  }
+
+  /**
+   * Terminally revoke an opaque dealer reference. This is equivalent to deleting the
+   * dealer through `/v1/dealers/{dealer_id}` from the partner's perspective: the
+   * public status becomes `deleted` and reactivation requires DealerMAX support.
+   */
+  revokeReference(externalDealerID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.delete(path`/api/partner/dealers/${externalDealerID}`, {
+      ...options,
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+    });
+  }
+
+  /**
+   * Temporarily deactivate an opaque dealer reference. SDK users can also call
+   * `PATCH /v1/dealers/{dealer_id}` with `status=inactive`; both routes map the
+   * public status to `inactive`.
+   */
+  suspendReference(externalDealerID: string, options?: RequestOptions): APIPromise<PartnerDealerResponse> {
+    return this._client.post(path`/api/partner/dealers/${externalDealerID}/suspend`, options);
   }
 }
 
@@ -198,7 +228,11 @@ export interface PartnerDealerResponse {
 
   public_surfaces_enabled: boolean;
 
-  status: 'active' | 'suspended' | 'revoked';
+  /**
+   * Public API status. The backing registry may store internal states such as
+   * suspended/revoked, but SDK responses expose inactive/deleted.
+   */
+  status: 'active' | 'inactive' | 'deleted';
 
   updated_at: string;
 
@@ -217,7 +251,7 @@ export interface DealerCreateParams {
 
   /**
    * Body param: When true, the dealer can immediately receive vehicle/NLT
-   * operations. When false, create the registry row but keep it suspended until
+   * operations. When false, create the registry row but keep it inactive until
    * activated.
    */
   activate?: boolean;
@@ -286,7 +320,7 @@ export interface DealerUpdateParams {
 }
 
 export interface DealerListParams extends CursorPageParams {
-  status?: 'active' | 'inactive' | 'all';
+  status?: 'active' | 'inactive' | 'deleted' | 'all';
 }
 
 Dealers.Nlt = Nlt;
