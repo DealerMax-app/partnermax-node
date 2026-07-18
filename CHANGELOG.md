@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 (2026-07-18)
+
+Full Changelog: [v0.5.0...v0.6.0](https://github.com/DealerMax-app/partnermax-node/compare/v0.5.0...v0.6.0)
+
+### Features
+
+* **stlc:** configurable CI runner and private-production-repo support in workflow templates ([e571ec0](https://github.com/DealerMax-app/partnermax-node/commit/e571ec0c86eda1cf2e37320a8f221714738ef574))
+
+
+### Bug Fixes
+
+* **ci:** bump @arethetypeswrong/cli to ^0.18.0 and run CI workflows on Node 24 ([644b5d1](https://github.com/DealerMax-app/partnermax-node/commit/644b5d1e94035a58240f0eff9408bcc9b3a4fa6a))
+
 ## 0.5.0 (2026-06-29)
 
 Full Changelog: [v0.4.2...v0.5.0](https://github.com/DealerMax-app/partnermax-node/compare/v0.4.2...v0.5.0)
